@@ -1,0 +1,356 @@
+---
+title: "Microwarming_data_formatting"
+author: "Lydia Vaughn"
+date: "22/05/2018"
+output: html_document
+---
+#Description
+```
+This script reformats and processes data saved in line 249 of the "Barrow Data" script.  Processing includes outlier detection and recoding data with associated plot numbers.  The data originate from an field soil warming experiment in Barrow, Alaska.
+```
+#Code
+
+##Install required packages
+
+These packages only need to be installed once, then this code can be commented out or deleted.
+
+Often, knitr does not like to install from the command window. If this is the case, look to the bottom right window and click on Packages -> Install -> and search for `knitr` in the window that opens.  
+
+Knitr will provide a row of buttons across the top of the top left window in RStudio which allow you to view this document in html format (by clicking on the "Knit HTML" button), as well as run some or all of the code chunks below (by clicking on the "Chunks" button)
+
+```{r}
+#uncomment to install packages from command line
+#install.packages("knitr")
+#install.packages("zoo")
+#install.packages("tidyverse")
+#install.packages("lubridate")
+```
+
+####Read in files
+```{r}
+#long <- read.csv('data/2015_organized/longBarrowFile_2015.csv', stringsAsFactors=F) 
+long <- read.csv('data/2016_organized/longBarrowFile_2016_2.csv', stringsAsFactors=F) 
+#change for 2015 vs. 2016 data
+
+decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
+```
+
+####Packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(zoo)
+```
+
+####QA/QC full dataset
+```{r}
+unique(long$id)
+#Drop the row if:
+
+#1) If the value of id is not one of the strings listed in the decoder
+long <- long %>% filter(id %in% unique(decoder$id))
+#2) If a temperature probe value is 0.000
+long <- long[long$value != 0.000,]
+#3) If a HAvg or UAvg value is 0.000
+long <- long[long$HAvg != 0.000 & long$UAvg!= 0.000,]
+```
+
+####Format date and time on both stpreadsheets
+```{r}
+long$time <- as.POSIXct(long$time)
+
+#2016 data only:
+long <- long %>% filter(long$time > "2016-05-13" & !is.na(long$time))
+
+decoder$start_date <- as.POSIXct(decoder$start_date, format = "%m/%d/%y")
+decoder$end_date <- as.POSIXct(decoder$end_date, format = "%m/%d/%y")
+
+decoder <- decoder %>% filter(decoder$start_date > "2016-01-01")
+
+decoder$start_time <- paste(decoder$start_date, decoder$start_time)
+decoder$end_time <- paste(decoder$end_date, decoder$end_time)
+
+decoder$start_time <- as.POSIXct(decoder$start_time)
+decoder$end_time <- as.POSIXct(decoder$end_time)
+```
+
+####Assign proper block and regStat to given control box id
+```{r}
+long$block <- long$id
+long$type <- long$regStat
+
+for(i in 1:length(decoder$id)){
+  box <- decoder$id[i]
+  block <- decoder$block[i]
+  type <- decoder$board_type[i]
+  starttime <- decoder$start_time[i]
+  endtime <- decoder$end_time[i]
+  
+  long$block <- ifelse(long$id == box & long$time > starttime & long$time < endtime, block, long$block)
+  
+  long$type <- ifelse(long$id == box & long$time > starttime & long$time < endtime, type, long$type)
+}
+```
+
+####Flag outliers on all time series recorded at 30 second intervals
+####calculate the sd and mean over every 1-hour window
+####if value is more than 2 sigma from the mean, flag it as an outlier
+```{r}
+long$flag <- ifelse(long$value >= 20 | long$value <= -20, "outlier", "NA")
+flagged <- long[0:0,]
+depths <- unique(long$depth)
+board_type <- unique(decoder$board_type)
+heatStat <- unique(long$heatStat)
+regStat <- unique(long$regStat)
+dist <- unique(long$dist)
+
+#function to calculate mean and sd for a rolling window
+myrollapply <- function(vec, width, FUN) 
+    sapply(seq_along(vec), 
+           function(i) ifelse (i < width/2 | length(vec) - i < width/2, NA, FUN(vec[(i-width/2):(i+width/2)], na.rm=T)))
+
+# myrollapply.2 <- function(df, sec, FUN) 
+#     sapply(seq_along(df$value), 
+#            function(i) ifelse (df$time[i] < df$time[1] + sec | df$time[length(df$time)] - sec < df$time[i], NA, (df %>% filter(time > time[i] - sec, time < time[i] + sec) %>% summarize(FUN(value), na.rm=T))))
+
+for(i in 1:4){
+  plot <- i
+  for(j in 1:length(depths)){
+    cm <- depths[j]
+    for(k in 1:length(board_type)){
+      MC <- board_type[k]
+      for(ii in 1:length(heatStat)){
+        HU <- heatStat[ii]
+        for(jj in 1:length(regStat)){
+          RM <- regStat[jj]
+          for(kk in 1:length(dist)){
+            distance <- dist[jj]
+          }
+          
+          swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
+          
+          early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time <= swap[1])
+          
+          earlysd <- myrollapply(early$value, 120, sd)
+          earlymean <- myrollapply(early$value, 120, mean)
+          #earlysd <- myrollapply.2(early, 1800, sd)
+          #earlymean <- myrollapply.2(early, 1800, mean)
+          early[,"sd"] <- earlysd
+          early[,"mean"] <- earlymean
+          early$diff <- early$value - early$mean
+          early$band <- early$sd*3
+          early$flag <- ifelse(abs(early$diff) > early$band, "outlier", early$flag)
+          
+          flagged <- rbind(flagged, early)
+
+        }
+      }
+    }
+  }
+}
+```
+
+####Flag outliers on all time series recorded at 5 minute intervals
+####use 4-hour rolling window
+```{r}
+# myrollapply.2 <- function(df, sec, FUN) 
+#     sapply(seq_along(df$value), 
+#            function(i) ifelse (df$time[i] < df$time[1] + sec | df$time[length(df$time)] - sec < df$time[i], NA, (df %>% filter(time > time[i] - sec, time < time[i] + sec) %>% summarize(FUN(value), na.rm=T))))
+
+#testframe <- long %>% filter(block == "1", depth == "5", heatStat == "H", date %in% c("2016-06-24", "2016-06-25"))
+
+#myrollapply(testframe, 7200, mean)
+
+for(i in 1:4){
+  plot <- i
+  for(j in 1:length(depths)){
+    cm <- depths[j]
+    for(k in 1:length(board_type)){
+      MC <- board_type[k]
+      for(ii in 1:length(heatStat)){
+        HU <- heatStat[ii]
+        for(jj in 1:length(regStat)){
+          RM <- regStat[jj]
+          for(kk in 1:length(dist)){
+            distance <- dist[jj]
+            
+          swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
+          
+          late <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time > swap[1])
+  
+#Because this portion of the dataset has many missing values, gap-fill the dataset so that there are observations every minute.  This is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
+          late$min <- as.POSIXct(format(late$time, "%Y-%m-%d %H:%M"))
+          minutes <- data.frame(min = ifelse(length(!is.na(late$min)) == 0, late, data.frame(min =seq(min(late$min), max(late$min), 60)))) 
+          colnames(minutes) = c("min")
+          if(length(is.na(late$min)) == 0) {late$min <- as.integer(late$min)} 
+          late <- minutes %>% full_join(late)
+
+          latesd <- myrollapply(late$value, 240, sd)
+          latemean <- myrollapply(late$value, 240, mean)
+          late[,"sd"] <- latesd
+          late[,"mean"] <- latemean
+          late$diff <- late$value - late$mean
+          late$band <- late$sd*2
+          late$flag <- ifelse(abs(late$diff) > late$band, "outlier", late$flag)
+          late <- late %>% filter(!is.na(value)) %>% select(-min)
+          
+          flagged <- rbind(flagged, late)
+          }
+        }
+      }
+    }
+  }
+}
+
+flagged <- unique(flagged)
+```
+
+####Average every 15 minutes.  (Need to change so that outliers are not included in average)
+```{r}
+  floor_datetime <- function(date_var, floor_seconds = 60, 
+        origin = "1970-01-01") { # defaults to minute rounding
+     if(!is(date_var, "POSIXct")) stop("Please pass in a POSIXct variable")
+     if(is.na(date_var)) return(as.POSIXct(NA)) else {
+        return(as.POSIXct(floor(as.numeric(date_var) / 
+           (floor_seconds))*(floor_seconds), origin = origin))
+     }
+  }
+
+long$time_15min <- floor_datetime(long$time, 15 * 60)
+
+#calculate the average across all depths for evey 15-minute interval
+long.15min.avg <- long %>% group_by(block, type, time_15min) %>% summarize(UAvg_15min = mean(UAvg), HAvg_15min = mean(HAvg)) %>% mutate(TempDiff_15min = HAvg_15min - UAvg_15min)
+
+#calculate the average for each depth and each 15-minute interval
+long.15min <- long %>% group_by(block, type, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+voltage.15min <- long %>% group_by(block, type, time_15min) %>% summarize(voltage = mean(Voltage))
+
+```
+
+####Save processed dataframes
+```{r}
+#flaggedBarrowFile_2016.csv (the original dataset plus outlier flags)
+
+#longBarrow.15min.avg_2016.csv (temperatures averaged across all depths for every 15-min interval)
+
+#longBarrow.15min_2016.csv (temperatures averaged for each depth for every 15-min interval)
+
+#voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
+```
+
+####this code works for outlier detection (tested this before running as the for loop above)
+```{r}
+#isolate block 2, 5 cm depth, control board, heated, monitor, early measurements
+plot <- "3"
+cm <- "20"
+MC <- "Ctl"
+HU <- "H"
+RM <- "M"
+
+swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
+
+early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time <= swap[1])
+
+#function to calculate mean and sd for a rolling window
+myrollapply <- function(vec, width, FUN) 
+    sapply(seq_along(vec), 
+           function(i) ifelse (i < width/2 | length(vec) - i <width/2, NA, FUN(vec[(i-width/2):(i+width/2)], na.rm=T)))
+
+#first pass identifying outliers
+#calculate the sd and mean over every 1-hour window
+#if value is more than 2 sigma from the mean, flag it as an outlier
+earlysd <- myrollapply(early$value, 120, sd)
+earlymean <- myrollapply(early$value, 120, mean)
+early[,"sd"] <- earlysd
+early[,"mean"] <- earlymean
+early$diff <- early$value - early$mean
+early$band <- early$sd*3
+early$flag <- ifelse(abs(early$diff) > early$band, "outlier", early$flag)
+length(early[early$flag == "outlier"&!is.na(early$flag),]$flag)
+
+outlierplot <- ggplot(early %>% filter(date == "2016-06-03"), aes(y = value, x = time, color = flag)) +
+  geom_point(pch = 1) +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time") 
+print(outlierplot + plottheme)
+```
+
+####Test for outlier detection
+```{r}
+longtest <- long %>% filter(block == 2) %>% filter(flag != "outlier") %>% filter(regStat == "R") %>% filter(time > "2016-09-14 00:00:00" & time < "2016-09-20 23:59:59")
+
+testplot <- ggplot(longtest %>% filter(value <= 10 & value >= -10), aes(y = value, x = time, color = heatStat)) +
+  geom_point(pch = 1) +
+  facet_grid(depth~.) +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time") +
+  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
+  
+print(testplot + plottheme)
+
+#function to calculate mean and sd for a rolling window
+myrollapply <- function(vec, width, FUN) 
+    sapply(seq_along(vec), 
+           function(i) ifelse (i < width/2 | length(vec) - i <width/2, NA, FUN(vec[(i-width/2):(i+width/2)], na.rm=T)))
+
+#make a subset dataframe on which to do outlier detection
+h5 <- longtest %>% filter(depth == "5") %>% filter(heatStat == "H")
+
+#gap-fill the dataset so that there are observations every 5 minutes (fill with NA if no observation was recorded)
+h5$min <- as.POSIXct(format(h5$time, "%Y-%m-%d %H:%M"))
+z <- zoo(seq_along(h5$min), h5$min)
+g <- zoo(, seq(start(z), end(z), 300))
+zm <- merge(g, z)
+h5 <- fortify.zoo(zm) %>% select("Index") %>% rename(min = Index) %>% full_join(h5)
+
+
+#first pass identifying outliers
+#calculate the sd and mean over every 4-hour time window
+#if value is more than 2 sigma from the mean, flag it as an outlier
+h5sd <- myrollapply(h5$value, 48, sd)
+h5mean <- myrollapply(h5$value, 48, mean)
+h5[,"sd"] <- h5sd
+h5[,"mean"] <- h5mean
+h5$diff <- h5$value - h5$mean
+h5$band <- h5$sd*2
+h5$flag <- NA
+h5$flag <- ifelse(abs(h5$diff) > h5$band, "outlier", h5$flag)
+length(h5[h5$flag == "outlier"&!is.na(h5$flag),]$flag)
+
+outlierplot <- ggplot(h5, aes(y = value, x = time, color = flag)) +
+  geom_point(pch = 1) +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time") 
+print(outlierplot + plottheme)
+
+#second pass to flag remaining outliers
+h5.2 <- h5 %>% filter(is.na(flag))
+h5.2sd <- myrollapply(h5.2$value, 30, sd)
+h5.2mean <- myrollapply(h5.2$value, 30, mean)
+h5.2[,"sd"] <- h5.2sd
+h5.2[,"mean"] <- h5.2mean
+h5.2$diff <- h5.2$value - h5.2$mean
+h5.2$band <- h5.2$sd*2.5
+h5.2$flag <- NA
+h5.2$flag <- ifelse(abs(h5.2$diff) > h5.2$band, "outlier", h5.2$flag)
+length(h5.2[h5.2$flag == "outlier"&!is.na(h5.2$flag),]$flag)
+
+outlierplot2 <- ggplot(h5.2, aes(y = value, x = time, color = flag)) +
+  geom_point(pch = 1) +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time")
+print(outlierplot2 + plottheme)
+
+h5 <- h5.2 %>% full_join(h5 %>% filter(flag == "outlier"))
+```
+
+####add column for heater status (ON vs. OFF)
+```{r}
+
+```
+
+####Average every 5 minutes
+```{r}
+
+```
