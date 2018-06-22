@@ -7,6 +7,9 @@ output: html_document
 #Description
 ```
 This script reformats and processes data saved in line 249 of the "Barrow Data" script.  Processing includes outlier detection and recoding data with associated plot numbers.  The data originate from an field soil warming experiment in Barrow, Alaska.
+
+Notes on column headers:
+Uavg = the average of the regulator probes (regStat = "R") in the unheated plots (heatStat = "U") between depths of 10 and 25 cm (depth = c(10, 15, 20, 25))
 ```
 #Code
 
@@ -28,8 +31,12 @@ Knitr will provide a row of buttons across the top of the top left window in RSt
 
 ####Read in files
 ```{r}
+#missing some data:
 #long <- read.csv('data/2015_organized/longBarrowFile_2015.csv', stringsAsFactors=F) 
+
+#complete 2016 dataset:
 long <- read.csv('data/2016_organized/longBarrowFile_2016_2.csv', stringsAsFactors=F) 
+
 #change for 2015 vs. 2016 data
 
 decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
@@ -205,6 +212,11 @@ for(i in 1:4){
 flagged <- unique(flagged)
 ```
 
+####Recalculate UAvg and HAvg, omitting outlier values.  Use only complete cases (i.e., where data exist for all depths in c(10, 15, 20, 15))
+```{r}
+UAvgHAvg.flagged <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(is.na(flag) , value, NA)) %>% group_by(block, time, type) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(is.na(flag) , value, NA)) %>% group_by(block, time, type) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
+```
+
 ####Average every 15 minutes.  (Need to change so that outliers are not included in average)
 ```{r}
   floor_datetime <- function(date_var, floor_seconds = 60, 
@@ -216,25 +228,31 @@ flagged <- unique(flagged)
      }
   }
 
-long$time_15min <- floor_datetime(long$time, 15 * 60)
+#flagged$time <- as.POSIXct(flagged$time)
 
-#calculate the average across all depths for evey 15-minute interval
-long.15min.avg <- long %>% group_by(block, type, time_15min) %>% summarize(UAvg_15min = mean(UAvg), HAvg_15min = mean(HAvg)) %>% mutate(TempDiff_15min = HAvg_15min - UAvg_15min)
+flagged$time_15min <- floor_datetime(flagged$time, 15 * 60)
+UAvgHAvg.flagged$time_15min <- floor_datetime(UAvgHAvg.flagged$time, 15 * 60)
 
 #calculate the average for each depth and each 15-minute interval
-long.15min <- long %>% group_by(block, type, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
+flagged.15min <- flagged %>% filter(is.na(flag)) %>% group_by(block, type, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
 
-voltage.15min <- long %>% group_by(block, type, time_15min) %>% summarize(voltage = mean(Voltage))
+#calculate the average across all depths (10-25 cm) for evey 15-minute interval.  Include only measurements that haven't been flagged as outliers.
+flagged.15min.avg <- UAvgHAvg.flagged %>% group_by(block, type, time_15min) %>% summarize(UAvg_15min = mean(UAvg, na.rm=T), HAvg_15min = mean(HAvg, na.rm=T)) %>% mutate(TempDiff_15min = HAvg_15min - UAvg_15min)
+
+#voltage.15min <- long %>% group_by(block, type, time_15min) %>% summarize(voltage = mean(Voltage))
 
 ```
 
 ####Save processed dataframes
 ```{r}
-#flaggedBarrowFile_2016.csv (the original dataset plus outlier flags)
+#the original dataset plus outlier flags
+write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016.csv") 
 
-#longBarrow.15min.avg_2016.csv (temperatures averaged across all depths for every 15-min interval)
+#temperatures averaged for each depth for every 15-min interval, outliers omitted
+write.csv(flagged.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016.csv") 
 
-#longBarrow.15min_2016.csv (temperatures averaged for each depth for every 15-min interval)
+#temperatures averaged across all depths for every 15-minute interval, outliers ommitted
+write.csv(flagged.15min.avg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016.csv") 
 
 #voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
 ```
