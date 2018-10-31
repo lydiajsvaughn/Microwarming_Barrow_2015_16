@@ -28,8 +28,8 @@ Knitr will provide a row of buttons across the top of the top left window in RSt
 ```
 
 ####Read in files
-Change to reflect new file name, saved in Microwarming_data_formatting_2015_16:
-flaggedBarrowFile_2016.csv
+Change to reflect files generated in Microwarming_data_formatting_2015_16:
+longBarrowFile_2016.csv
 longBarrow.15min.avg_2016.csv
 longBarrow.15min_2016.csv
 voltageBarrow.15min_2016.csv
@@ -69,7 +69,7 @@ p1 <- ggplot(long.15min.avg %>% filter(block %in% c(1,2,3,4)) %>% filter(type ==
 p1 + plottheme
 
 #ggsave("TempDiff_15min_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("TempDiff_15min_2016.png", path="plots", width = 14, height = 7, dpi = 300)
+ggsave("TempDiff_15min_2016.png", path="plots/raw_data", width = 14, height = 7, dpi = 300)
 ```
 
 ####Plot 2: depth-averaged average temperature in heated and unheated blocks, using the regulator board output
@@ -88,7 +88,7 @@ p2 <- ggplot(heatstat.15min.avg %>% filter(block %in% c(1,2,3,4)) %>% filter(typ
 p2 + plottheme
 
 #ggsave("UavgHavg_15min_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("UavgHavg_15min_2016.png", path="plots", width = 14, height = 7, dpi = 300)
+ggsave("UavgHavg_15min_2016.png", path="plots/raw_data", width = 14, height = 7, dpi = 300)
 ```
 
 ####Plot 3: Temperature in heated and unheated plots within each block at depth = 5cm and depth = 25cm  
@@ -111,7 +111,7 @@ for(i in 1:length(unique(chambers$block))){
 print(p3 + plottheme)
 
 #ggsave(file = paste(plot, "_tempdepth_2015.png", sep=""), path="plots", width = 14, height = 7, dpi = 300)
-ggsave(file = paste(plot, "_tempdepth_2016.png", sep=""), path="plots", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste(plot, "_tempdepth_2016.png", sep=""), path="plots/raw_data", width = 8.5, height = 11, dpi = 300)
 
 
 }
@@ -129,5 +129,5 @@ p4 <- ggplot(voltage.15min %>% filter(voltage < 30) %>% filter(type == "Ctl"), a
 p4 + plottheme
 
 #ggsave("voltage_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("voltage_2016.png", path="plots", width = 14, height = 7, dpi = 300)
+ggsave("voltage_2016.png", path="plots/raw_data", width = 14, height = 7, dpi = 300)
 ```
