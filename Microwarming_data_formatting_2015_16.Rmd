@@ -73,8 +73,8 @@ decoder$start_date <- as.POSIXct(decoder$start_date, format = "%m/%d/%y")
 decoder$end_date <- as.POSIXct(decoder$end_date, format = "%m/%d/%y")
 
 #comment/uncomment for 2015/2016 data
-#decoder <- decoder %>% filter(decoder$start_date > "2016-01-01")
-decoder <- decoder %>% filter(decoder$start_date < "2016-01-01")
+#decoder <- decoder %>% filter(decoder$start_date > "2016-01-01") #2016 data
+decoder <- decoder %>% filter(decoder$start_date < "2016-01-01") #2015 data
 
 decoder$start_time <- paste(decoder$start_date, decoder$start_time)
 decoder$end_time <- paste(decoder$end_date, decoder$end_time)
