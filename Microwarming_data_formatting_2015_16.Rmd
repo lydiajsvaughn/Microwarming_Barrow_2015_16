@@ -166,7 +166,7 @@ dist <- unique(long$dist)
 #function to calculate mean and sd for a rolling window
 myrollapply <- function(vec, width, FUN) 
     sapply(seq_along(vec), 
-           function(i) FUN(vec[(i-width/2):(i+width/2)], na.rm=T))
+           function(i) FUN(vec[(i-min(i, width/2)):(i+width/2)], na.rm=T))
 
 #myrollapply <- function(vec, width, FUN) 
 #    sapply(seq_along(vec), 
@@ -253,10 +253,10 @@ for(i in 1:4){
   
 #In order to select a 4-hour rolling window, gap-fill the dataset so that is a row for every 5-minute time interval.  This deals with the issue of missing values in the dataset by adding NA rows for these missing values, with an appropriate time stamp.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
           #(1) Assign each measurement to the beginning of a 30-second window (because while they are recorded approximately every 30 seconds, the clock occasionally shifts by a second or two).
-          test$timestamp <- floor_date(test$time, "5 mins")
+          late$timestamp <- floor_date(late$time, "5 mins")
           
           #(2) To make sure there is exactly one measuremnet every 5 minutes, compute a 5-minute average
-          mean.5min <- test %>% group_by(timestamp) %>% summarize(value = mean(value, na.rm = T))
+          mean.5min <- late %>% group_by(timestamp) %>% summarize(value = mean(value, na.rm = T))
           
           #(2) Gap-fill the dataset so there is a row every 30 seconds.  
           timestamps <- data.frame(timestamp = ifelse(length(!is.na(mean.5min$timestamp)) == 0, mean.5min, data.frame(timestamp =seq(min(mean.5min$timestamp), max(mean.5min$timestamp), 300)))) 
@@ -272,8 +272,8 @@ for(i in 1:4){
           #late <- minutes %>% full_join(late)
 
           #if the above uncommented code works, change the code below so that the window is 48 instead of 240 (the number of measurements in a 4-hour rolling window)
-          latesd <- myrollapply(late$value, 240, sd)
-          latemean <- myrollapply(late$value, 240, mean)
+          latesd <- myrollapply(mean.5min$value, 48, sd)
+          latemean <- myrollapply(mean.5min$value, 48, mean)
           late[,"sd"] <- latesd
           late[,"mean"] <- latemean
           late$diff <- late$value - late$mean
