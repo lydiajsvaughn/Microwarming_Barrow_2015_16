@@ -99,8 +99,6 @@ for(i in 1:length(decoder$id)){
   
   long$type <- ifelse(long$id == box & long$time >= starttime & long$time <= endtime, type, long$type)
 }
-
-long <- na.omit(long)
 ```
 
 ####Calculate the number of measurements for each value of the type variable
@@ -159,9 +157,9 @@ MyDatesTable.t2.filter %>% filter(Freq > 120)
 #create a variable called flag
 long$flag <- NA
 
-flagged <- long[0:0,]
+flagged.early <- long[0:0,]
 depths <- unique(long$depth)
-board_type <- unique(decoder$board_type)
+board_type <- unique(decoder$board_type) #check whether using decoder instead of long is an issue
 heatStat <- unique(long$heatStat)
 regStat <- unique(long$regStat)
 dist <- unique(long$dist)
@@ -186,12 +184,12 @@ for(i in 1:4){
         for(jj in 1:length(regStat)){
           RM <- regStat[jj]
           for(kk in 1:length(dist)){
-            distance <- dist[jj]
-          }
+            distance <- dist[kk]
+            
           
           swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
           
-          early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time <= swap[1,1])
+          early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time < swap[1,1])
    
           #To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
        
@@ -215,13 +213,14 @@ for(i in 1:4){
           early$band <- early$sd*2
           early$flag <- ifelse(abs(early$diff) > early$band, "outlier", early$flag)
           
-          flagged <- rbind(flagged, early)
-
+          flagged.early <- rbind(flagged.early, early)
+          }
         }
       }
     }
   }
 }
+
 ```
 
 ####Flag outliers on all time series recorded at 5 minute intervals
@@ -234,6 +233,7 @@ for(i in 1:4){
 #testframe <- long %>% filter(block == "1", depth == "5", heatStat == "H", date %in% c("2016-06-24", "2016-06-25"))
 
 #myrollapply(testframe, 7200, mean)
+flagged.late <- long[0:0,]
 
 for(i in 1:4){
   plot <- i
@@ -246,7 +246,7 @@ for(i in 1:4){
         for(jj in 1:length(regStat)){
           RM <- regStat[jj]
           for(kk in 1:length(dist)){
-            distance <- dist[jj]
+            distance <- dist[kk]
             
           swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
           
@@ -289,7 +289,7 @@ for(i in 1:4){
           
           #late <- late %>% filter(!is.na(value.5min)) %>% select(-min)
           
-          flagged <- flagged %>% bind_rows(late)
+          flagged.late <- flagged.late %>% bind_rows(late)
           }
         }
       }
@@ -297,11 +297,9 @@ for(i in 1:4){
   }
 }
 
-#uncomment once code above works
-#flagged <- unique(flagged)
-
-#remove rows that were gap-filled (i.e., don't contain real data)
-#flagged <- flagged %>% filter(!is.na(value))
+flagged <- flagged.late %>% bind_rows(flagged.early)
+flagged <- unique(flagged)
+flagged <- flagged %>% filter(!is.na(value))
 ```
 
 ####To visualize outliers
@@ -326,6 +324,7 @@ for(i in 1:4){
 ```
 
 ####Recalculate UAvg and HAvg, omitting outlier values.  Use only complete cases (i.e., where data exist for all depths in c(10, 15, 20, 25))
+#Fix this to cover the appropriate depths.  Also change the way of identifying complete cases.
 ```{r}
 UAvgHAvg.flagged <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
 ```
