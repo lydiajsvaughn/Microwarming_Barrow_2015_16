@@ -35,7 +35,7 @@ Knitr will provide a row of buttons across the top of the top left window in RSt
 #long <- read.csv('data/2015_organized/longBarrowFile_2015.csv', stringsAsFactors=F) 
 
 #complete 2016 dataset:
-long <- read.csv('data/2016_organized/longBarrowFile_2016_3.csv', stringsAsFactors=F) 
+long <- read.csv('data/2016_organized/longBarrowFile_2016_4.csv', stringsAsFactors=F) 
 
 #comment/uncomment to change for 2015 vs. 2016 data
 
@@ -60,6 +60,16 @@ long <- long %>% filter(id %in% unique(decoder$id))
 long <- long[long$value != 0.000,]
 #3) If a HAvg or UAvg value is 0.000
 #long <- long[long$HAvg != 0.000 & long$UAvg!= 0.000,]
+#4) If a temperature probe values is greater than 20 or less than -5 (outside the range of reasonable values)
+long <- long %>% filter(value <= 20 & value >= -5)
+
+#Query the remaining unique ids
+unique(long$id)
+
+#Figure out which of these ids have normal temperature values by asking for the summary for each id 
+for (i in 1:length(unique(long$id))) {
+  print(summary(long[long$id == unique(long$id)[i],]))
+}  
 ```
 
 ####Format date and time on both stpreadsheets
@@ -327,6 +337,41 @@ flagged <- flagged %>% filter(!is.na(value))
 #Fix this to cover the appropriate depths.  Also change the way of identifying complete cases.
 ```{r}
 UAvgHAvg.flagged <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
+
+noband <- flagged %>% filter(is.na(band)) #why did some of these not calculate a sd, mean, band, value.5min, etc?
+
+#transform from long to wide, with a value for each depth.  Incomplete cases will have NA for certain depths
+test.U <- flagged %>% filter(heatStat == "U", is.na(flag)) %>% select(block, time, heatStat, depth, dist, value) 
+
+test.U[c(45527, 45528),]
+flagged %>% filter(time == "2016-07-24 22:19:39", heatStat == "U", depth == "5", dist == "10")
+
+#%>% spread(depth, value)
+
+#use na.omit to get rid of incomplete cases
+
+#transform back to long format and summarize.
+
+# # there w
+# testframe <- data.frame(time = "2016-06-14 19:00:00", depth = 10)
+# 
+# testframe2 <- testframe %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
+# 
+# test.U <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
+# 
+# test.H <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
+# 
+# %>% bind_rows(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25)))) %>% full_join (flagged) %>% mutate(value2 = ifelse(is.na(flag), value, NA)) 
+# 
+# test$value2 <- ifelse(is.na(test$flag), test$value, NA)
+# 
+# %>% group_by(block, time, heatStat)
+# 
+# test2 <- test %>% filter(block == "1", time == "2016-06-14 19:06:32")
+# 
+# 
+# 
+# #depths <- data.frame(depth = c(10, 15, 20, 25))
 ```
 
 ####Average every 15 minutes. 
