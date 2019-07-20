@@ -111,6 +111,15 @@ for(i in 1:length(decoder$id)){
 }
 ```
 
+####For block 1 from 6/14/16 until 10/14/16, U and H were swapped except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
+```{r}
+#add variable indicating which data need U/H swapped.  This can take on values of "yes" or NA
+long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40")) %>%  filter(depth != "35" & depth != "50") %>% mutate(UH.swap = "yes"))
+
+#swap U and H for the labeled entries
+long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(UH.swap == "yes") %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
+```
+
 ####Calculate the number of measurements for each value of the type variable
 ```{r}
 long %>% group_by(type) %>% summarize(length(type))
