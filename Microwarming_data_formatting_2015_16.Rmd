@@ -40,6 +40,8 @@ long <- read.csv('data/2016_organized/longBarrowFile_2016_4.csv', stringsAsFacto
 #comment/uncomment to change for 2015 vs. 2016 data
 
 decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
+
+heatstat <- read.csv('data/HeaterStatus.csv', stringsAsFactors=F)
 ```
 
 ####Packages
@@ -72,7 +74,7 @@ for (i in 1:length(unique(long$id))) {
 }  
 ```
 
-####Format date and time on both stpreadsheets
+####Format date and time on all dataframes
 ```{r}
 long$time <- as.POSIXct(long$time)
 
@@ -81,6 +83,8 @@ long <- long %>% filter(long$time > "2016-05-13" & !is.na(long$time))
 
 decoder$start_date <- as.POSIXct(decoder$start_date, format = "%Y-%m-%d")
 decoder$end_date <- as.POSIXct(decoder$end_date, format = "%Y-%m-%d")
+
+heatstat$date <- as.POSIXct(heatstat$date, format = "%Y-%m-%d")
 
 #comment/uncomment for 2015/2016 data
 decoder <- decoder %>% filter(decoder$start_date > "2016-01-01") #2016 data
@@ -111,10 +115,10 @@ for(i in 1:length(decoder$id)){
 }
 ```
 
-####For block 1 from 6/14/16 until 10/14/16, U and H were swapped except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
+####For block 1 from 6/14/16 until 10/14/16, U and H were swapped for regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
 ```{r}
 #add variable indicating which data need U/H swapped.  This can take on values of "yes" or NA
-long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40")) %>%  filter(depth != "35" & depth != "50") %>% mutate(UH.swap = "yes"))
+long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
 
 #swap U and H for the labeled entries
 long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(UH.swap == "yes") %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
@@ -321,6 +325,11 @@ flagged <- unique(flagged)
 flagged <- flagged %>% filter(!is.na(value))
 ```
 
+Save flagged dataframe (the original dataset plus outlier flags)
+```{r}
+write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_4.csv") 
+```
+
 ####To visualize outliers
 ```{r}
 # plottheme <- theme_bw() + 
@@ -340,6 +349,11 @@ flagged <- flagged %>% filter(!is.na(value))
 #   ylab(expression("Temperature" ~ (degree * C))) +
 #   xlab("Time") 
 # print(outlierplot + plottheme)
+```
+
+####add column for heater status (ON vs. OFF)
+```{r}
+
 ```
 
 ####Recalculate UAvg and HAvg, omitting outlier values.  Use only complete cases (i.e., where data exist for all depths in c(10, 15, 20, 25))
@@ -411,14 +425,11 @@ flagged.15min.avg <- UAvgHAvg.flagged %>% group_by(block, type, time_15min) %>% 
 
 ####Save processed dataframes
 ```{r}
-#the original dataset plus outlier flags
-write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_2.csv") 
-
 #temperatures averaged for each depth for every 15-min interval, outliers omitted
-write.csv(flagged.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_2.csv") 
+write.csv(flagged.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
 
 #temperatures averaged across all depths for every 15-minute interval, outliers ommitted
-write.csv(flagged.15min.avg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_2.csv") 
+write.csv(flagged.15min.avg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv") 
 
 #voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
 ```
@@ -529,9 +540,4 @@ outlierplot2 <- ggplot(h5.2, aes(y = value, x = time, color = flag)) +
 print(outlierplot2 + plottheme)
 
 h5 <- h5.2 %>% full_join(h5 %>% filter(flag == "outlier"))
-```
-
-####add column for heater status (ON vs. OFF)
-```{r}
-
 ```
