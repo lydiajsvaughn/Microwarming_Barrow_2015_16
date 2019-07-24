@@ -121,14 +121,13 @@ for(i in 1:length(decoder$id)){
 long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
 
 #swap U and H for the labeled entries
-long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(UH.swap == "yes") %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
+long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
 ```
 
 ####Calculate the number of measurements for each value of the type variable
 ```{r}
 long %>% group_by(type) %>% summarize(length(type))
 long %>% group_by(block) %>% summarize(length(block))
-
 long %>% group_by(type, block) %>% summarize(length(type))
 ```
 
