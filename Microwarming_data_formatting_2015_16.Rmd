@@ -330,25 +330,33 @@ Save flagged dataframe (the original dataset plus outlier flags)
 write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_4.csv") 
 ```
 
+####Optional: read in flagged file and format time variable
+```{r}
+#flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_4.csv', stringsAsFactors=F) 
+#flagged$time <- as.POSIXct(flagged$time)
+```
+
 ####To visualize outliers
 ```{r}
-# plottheme <- theme_bw() + 
-#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank()) +
-#   theme(axis.text.y = element_text(color="black", size=12)) +
-#   theme(axis.text.x = element_text(color="black", size=12, angle=90, vjust=.5)) +
-#   theme(axis.title.y = element_text(size=14)) +
-#   theme(axis.title.x = element_blank()) +
-#   theme(legend.position = c(.9, .85)) +
-#   theme(legend.title = element_text(size=14)) +
-#   theme(legend.text = element_text(size=12)) 
+plottheme <- theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank()) +
+  theme(axis.text.y = element_text(color="black", size=12)) +
+  theme(axis.text.x = element_text(color="black", size=12, angle=90, vjust=.5)) +
+  theme(axis.title.y = element_text(size=14)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.position = c(.9, .85)) +
+  theme(legend.title = element_text(size=14)) +
+  theme(legend.text = element_text(size=12))
 
-#h5 <- flagged %>% filter(add critera here)
+#outliers <- flagged %>% filter(add criteria here)
+outliers <- testframe %>% filter(block == "2", heatStat == "U")
 
-# outlierplot <- ggplot(h5, aes(y = value, x = time, color = flag)) +
-#   geom_point(pch = 1) +
-#   ylab(expression("Temperature" ~ (degree * C))) +
-#   xlab("Time") 
-# print(outlierplot + plottheme)
+outlierplot <- ggplot(outliers, aes(y = value, x = time)) +
+  #geom_point(pch = 1, color = flag) +
+  geom_point() +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time")
+print(outlierplot + plottheme)
 ```
 
 ####add column for heater status (ON vs. OFF)
@@ -356,10 +364,60 @@ write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_4.csv")
 
 ```
 
-####Recalculate UAvg and HAvg, omitting outlier values.  Use only complete cases (i.e., where data exist for all depths in c(10, 15, 20, 25))
-#Fix this to cover the appropriate depths.  Also change the way of identifying complete cases.
+####Average every 15 minutes. 
 ```{r}
+  floor_datetime <- function(date_var, floor_seconds = 60, 
+        origin = "1970-01-01") { # defaults to minute rounding
+     if(!is(date_var, "POSIXct")) stop("Please pass in a POSIXct variable")
+     if(is.na(date_var)) return(as.POSIXct(NA)) else {
+        return(as.POSIXct(floor(as.numeric(date_var) / 
+           (floor_seconds))*(floor_seconds), origin = origin))
+     }
+  }
+
+flagged$time_15min <- floor_datetime(flagged$time, 15 * 60)
+
+#calculate the average for each plot and depth for each 15-minute interval
+flagged.15min <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+flagged.15min.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_15min, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+
+```
+
+####Write to csv files
+```{r}
+#temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
+write.csv(flagged.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
+
+#temperatures averaged for each probe, every 15-min interval, outliers omitted
+write.csv(flagged.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_4")
+```
+
+####Recalculate UAvg and HAvg, omitting outlier values.  These are the depth-averaged temperatures in the heated and unheated blocks each time a data point was recorded.  Use only complete cases (i.e., where data exist for all depths in c(10, 15, 20, 25)).
+#Fix this to cover the appropriate depths.  
+#Fix this to change the way of identifying complete cases. - I think I need to group on dist also.
+```{r}
+
+#also do may 28 and aug 15
+# testframe <- flagged %>% filter(date >= "2016-05-28" & date < "2016-05-29")
+# 
+# testframe %>% group_by(block, time, type, heatStat, dist, regStat) %>% summarize(depths = length(unique(depth)))
+# 
+# b4.5 <- testframe %>% filter(block == "4", heatStat == "U", depth == "5")
+# b4.10 <- testframe %>% filter(block == "4", heatStat == "U", depth == "10")
+# b4.15 <- testframe %>% filter(block == "4", heatStat == "U", depth == "15")
+# b4.20 <- testframe %>% filter(block == "4", heatStat == "U", depth == "10")
+# b2.25 <- testframe %>% filter(block == "2", heatStat == "U", depth == "25")
+# b4.35 <- testframe %>% filter(block == "4", heatStat == "U", depth == "35")
+# b4.50 <- testframe %>% filter(block == "4", heatStat == "U", depth == "50")
+# 
+# test.UAvgHAvg.flagged <- testframe %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(is.na(flag), value, NA)) %>% group_by(block, time, type, dist) %>% summarize(UAvg = mean(value2)) %>% left_join(testframe %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(is.na(flag), value, NA)) %>% group_by(block, time, type, dist) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
+
+
 UAvgHAvg.flagged <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
+
+test.UAvgHAvg.flagged <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type, dist) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type, dist) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
 
 noband <- flagged %>% filter(is.na(band)) #why did some of these not calculate a sd, mean, band, value.5min, etc?
 
@@ -397,24 +455,9 @@ flagged %>% filter(time == "2016-07-24 22:19:39", heatStat == "U", depth == "5",
 # #depths <- data.frame(depth = c(10, 15, 20, 25))
 ```
 
-####Average every 15 minutes. 
+####Average the Uavg and Havg data every 15 minutes. 
 ```{r}
-  floor_datetime <- function(date_var, floor_seconds = 60, 
-        origin = "1970-01-01") { # defaults to minute rounding
-     if(!is(date_var, "POSIXct")) stop("Please pass in a POSIXct variable")
-     if(is.na(date_var)) return(as.POSIXct(NA)) else {
-        return(as.POSIXct(floor(as.numeric(date_var) / 
-           (floor_seconds))*(floor_seconds), origin = origin))
-     }
-  }
-
-#flagged$time <- as.POSIXct(flagged$time)
-
-flagged$time_15min <- floor_datetime(flagged$time, 15 * 60)
 UAvgHAvg.flagged$time_15min <- floor_datetime(UAvgHAvg.flagged$time, 15 * 60)
-
-#calculate the average for each depth and each 15-minute interval
-flagged.15min <- flagged %>% filter(flag != "outlier") %>% group_by(block, type, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
 
 #calculate the average across all depths (10-25 cm) for evey 15-minute interval.  Include only measurements that haven't been flagged as outliers.
 flagged.15min.avg <- UAvgHAvg.flagged %>% group_by(block, type, time_15min) %>% summarize(UAvg_15min = mean(UAvg, na.rm=T), HAvg_15min = mean(HAvg, na.rm=T)) %>% mutate(TempDiff_15min = HAvg_15min - UAvg_15min)
@@ -425,9 +468,6 @@ flagged.15min.avg <- UAvgHAvg.flagged %>% group_by(block, type, time_15min) %>% 
 
 ####Save processed dataframes
 ```{r}
-#temperatures averaged for each depth for every 15-min interval, outliers omitted
-write.csv(flagged.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
-
 #temperatures averaged across all depths for every 15-minute interval, outliers ommitted
 write.csv(flagged.15min.avg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv") 
 
