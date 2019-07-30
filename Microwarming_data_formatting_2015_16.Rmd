@@ -247,8 +247,11 @@ for(i in 1:length(combinations$block)) {
 
 }
 
-#Omit gap-filled timestamps and one-off value (no other values within the 1-hour window)
-flagged.early <- flagged.early %>% unique() %>% filter(!is.na(value), diff != 0)
+#Assign outlier status to all values that are alone within the rolling window
+flagged.early <- flagged.early %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
+
+#Omit repeated rows and gap-filled timestamps
+flagged.early <- flagged.early %>% unique() %>% filter(!is.na(value))
 
 # for(i in 1:4){
 #   plot <- i
@@ -360,8 +363,11 @@ for(i in 1:length(combinations$block)) {
 
 }
 
-#Omit gap-filled timestamps and one-off value (no other values within the 1-hour window)
-flagged.late <- flagged.late %>% unique() %>% filter(!is.na(value), diff != 0)
+#Assign outlier status to all values that are alone within the rolling window
+flagged.late <- flagged.late %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
+
+#Omit repeated rows and gap-filled timestamps
+flagged.late <- flagged.late %>% unique() %>% filter(!is.na(value))
 
 flagged <- flagged.late %>% bind_rows(flagged.early)
 
@@ -458,7 +464,7 @@ plottheme <- theme_bw() +
   theme(legend.text = element_text(size=12))
 
 #outliers <- flagged %>% filter(add criteria here)
-outliers <- testframe %>% filter(block == "1", heatStat == "U", )
+outliers <- flagged %>% filter(date == "2016-06-17", block == combinations$block[10], heatStat == combinations$heatStat[10], )
 
 outlierplot <- ggplot(outliers, aes(y = value, x = time)) +
   #geom_point(pch = 1, color = flag) +
