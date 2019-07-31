@@ -51,11 +51,6 @@ library(lubridate)
 library(zoo)
 ```
 
-####For testing code; remove this chunk after
-```{r}
-long <- long %>% filter(date > "2016-05-14" & date <= "2016-05-15" | date > "2016-06-16" & date <= "2016-06-17")
-```
-
 ####QA/QC full dataset
 ```{r}
 unique(long$id)
@@ -500,6 +495,18 @@ mean.15min.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_15m
 
 ```
 
+####Average every hour
+```{r}
+flagged$time_hour <- floor_datetime(flagged$time, 60 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.hour <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+
+```
+
 ####Write to csv files
 ```{r}
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
@@ -507,6 +514,12 @@ write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4
 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
 write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 1-hour interval, outliers omitted
+write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 1-hour interval, outliers omitted
+write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4")
 ```
 
 ####Calculate the depth-averaged temperatures in the heated and unheated blocks for each 15-minute time period.  Do not use depth == 25, since it is missing from most (but not all) data streams.    Use only complete cases (i.e., where data exist for all non-25cm depths).
