@@ -435,14 +435,28 @@ flagged <- flagged.late %>% bind_rows(flagged.early)
 # flagged <- flagged %>% filter(!is.na(value))
 ```
 
+####Add identifier for bad probes (flag = "badProbe"), as determined from plots of individual probe data streams
+```{r}
+#Block 1, Monitor, dist = 10, depth = 20, heatStat = U
+#Block 2, Monitor, dist = 8
+#Block 2, Monitor, dist = 6, heatStat = H
+#Block 3, Ctl, dist = 8, depth = 25, heatStat = H
+#Block 3, Ctl, dist = 6, depth = 20
+#Block 4, Monitor, dist = 10, depth = 50, heatStat = H
+#Block 4, Ctl, dist = 8, depth = 5, heatStat = H, date > 2016-06-01
+
+test <- flagged %>% mutate(flag = if_else(block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "8", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", if_else(block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", if_else(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badProbe", flag))))))))
+
+```
+
 Save flagged dataframe (the original dataset plus outlier flags)
 ```{r}
-write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_4.csv") 
+write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_5.csv") 
 ```
 
 ####Optional: read in flagged file and format time variable
 ```{r}
-flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_4.csv', stringsAsFactors=F) 
+flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_5.csv', stringsAsFactors=F) 
 flagged$time <- as.POSIXct(flagged$time)
 ```
 
