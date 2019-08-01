@@ -178,11 +178,11 @@ MyDatesTable.t2.filter %>% filter(Freq > 120)
 ####calculate the sd and mean over every 1-hour window
 ####if value is more than 2 sigma from the mean, flag it as an outlier
 ```{r}
-#filter all measurements that are wildly too high or too low
-#long$flag <- ifelse(long$value >= 20 | long$value <= -20, "outlier", "NA")
-
 #create a variable called flag
 long$flag <- NA
+
+#filter all measurements that are wildly too high or too low
+long <- long %>% mutate(flag = if_else(value >= 20 & value <= -5, "outlier", flag))
 
 flagged.early <- long[0:0,]
 depths <- unique(long$depth)
@@ -445,7 +445,7 @@ flagged <- flagged.late %>% bind_rows(flagged.early)
 #Block 4, Monitor, dist = 10, depth = 50, heatStat = H
 #Block 4, Ctl, dist = 8, depth = 5, heatStat = H, date > 2016-06-01
 
-test <- flagged %>% mutate(flag = if_else(block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "8", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", if_else(block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", if_else(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badProbe", flag))))))))
+flagged <- flagged %>% mutate(flag = if_else(block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "8", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", if_else(block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", if_else(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badProbe", flag))))))))
 
 ```
 
