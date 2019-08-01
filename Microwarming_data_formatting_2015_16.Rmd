@@ -196,10 +196,6 @@ myrollapply <- function(vec, width, FUN)
     sapply(seq_along(vec), 
            function(i) FUN(vec[(i-min(i, width/2)):(i+width/2)], na.rm=T))
 
-#myrollapply <- function(vec, width, FUN) 
-#    sapply(seq_along(vec), 
-#           function(i) ifelse (i < width/2 | length(vec) - i < width/2, NA, FUN(vec[(i-width/2):(i+width/2)], na.rm=T)))
-
 combinations <- long %>% select(block, depth, type, heatStat, regStat, dist) %>% distinct()
 
 for(i in 1:length(combinations$block)) {
@@ -248,66 +244,12 @@ flagged.early <- flagged.early %>% mutate(flag = if_else(diff == 0.0000, "outlie
 #Omit repeated rows and gap-filled timestamps
 flagged.early <- flagged.early %>% unique() %>% filter(!is.na(value))
 
-# for(i in 1:4){
-#   plot <- i
-#   for(j in 1:length(depths)){
-#     cm <- depths[j]
-#     for(k in 1:length(board_type)){
-#       MC <- board_type[k]
-#       for(ii in 1:length(heatStat)){
-#         HU <- heatStat[ii]
-#         for(jj in 1:length(regStat)){
-#           RM <- regStat[jj]
-#           for(kk in 1:length(dist)){
-#             distance <- dist[kk]
-#             
-#           
-#           swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
-#           
-#           early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time < swap[1,1])
-#    
-#           #To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
-#        
-#           #(1) Assign each measurement to the beginning of a 30-second window (because while they are recorded approximately every 30 seconds, the clock occasionally shifts by a second or two).
-#           early$timestamp <- floor_date(early$time, "0.5 mins")
-#           
-#           #(2) Gap-fill the dataset so there is a row every 30 seconds.  
-#           timestamps <- data.frame(timestamp = ifelse(length(!is.na(early$timestamp)) == 0, early, data.frame(timestamp =seq(min(early$timestamp), max(early$timestamp), 30)))) 
-#           colnames(timestamps) = c("timestamp")
-#           if(length(is.na(early$timestamp)) == 0) {early$timestamp <- as.integer(early$timestamp)} 
-#           if(length(is.na(timestamps$timestamp)) == 0) {timestamps$timestamp <- as.integer(timestamps$timestamp)} 
-#           #timestamps <- data.frame(timestamp =  seq(min(early$timestamp), max(early$timestamp), 30))
-#           early <- timestamps %>% full_join(early) %>% arrange(timestamp)
-# #          early <- timestamps %>% full_join(early) 
-#           
-#           earlysd <- myrollapply(early$value, 120, sd)
-#           earlymean <- myrollapply(early$value, 120, mean)
-#           early[,"sd"] <- earlysd
-#           early[,"mean"] <- earlymean
-#           early$diff <- early$value - early$mean
-#           early$band <- early$sd*2
-#           early$flag <- ifelse(abs(early$diff) > early$band, "outlier", early$flag)
-#           
-#           flagged.early <- rbind(flagged.early, early)
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
-
 ```
 
 ####Flag outliers on all time series recorded at 5 minute intervals
 ####use 4-hour rolling window
 ```{r}
-# myrollapply.2 <- function(df, sec, FUN) 
-#     sapply(seq_along(df$value), 
-#            function(i) ifelse (df$time[i] < df$time[1] + sec | df$time[length(df$time)] - sec < df$time[i], NA, (df %>% filter(time > time[i] - sec, time < time[i] + sec) %>% summarize(FUN(value), na.rm=T))))
 
-#testframe <- long %>% filter(block == "1", depth == "5", heatStat == "H", date %in% c("2016-06-24", "2016-06-25"))
-
-#myrollapply(testframe, 7200, mean)
 flagged.late <- long[0:0,]
 
 for(i in 1:length(combinations$block)) {
@@ -366,73 +308,6 @@ flagged.late <- flagged.late %>% unique() %>% filter(!is.na(value))
 
 flagged <- flagged.late %>% bind_rows(flagged.early)
 
-
-
-# for(i in 1:4){
-#   plot <- i
-#   for(j in 1:length(depths)){
-#     cm <- depths[j]
-#     for(k in 1:length(board_type)){
-#       MC <- board_type[k]
-#       for(ii in 1:length(heatStat)){
-#         HU <- heatStat[ii]
-#         for(jj in 1:length(regStat)){
-#           RM <- regStat[jj]
-#           for(kk in 1:length(dist)){
-#             distance <- dist[kk]
-            
-#           swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
-#           
-#           late <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time >= swap[1,1])
-#   
-# #In order to select a 4-hour rolling window, gap-fill the dataset so that is a row for every 5-minute time interval.  This deals with the issue of missing values in the dataset by adding NA rows for these missing values, with an appropriate time stamp.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
-#           #(1) Assign each measurement to the beginning of a 5-minute window (because while they are recorded approximately every 5 minutes, the clock occasionally shifts by a second or two).
-#           late$timestamp <- floor_date(late$time, "5 mins")
-#           
-#           #(2) To make sure there is exactly one measuremnet every 5 minutes, compute a 5-minute average
-#           mean.5min <- late %>% group_by(timestamp) %>% summarize(value.5min = mean(value, na.rm = T))
-#           
-#           #(2) Gap-fill the dataset so there is a row every 30 seconds.  
-#           timestamps <- data.frame(timestamp = ifelse(length(!is.na(mean.5min$timestamp)) == 0, mean.5min, data.frame(timestamp =seq(min(mean.5min$timestamp), max(mean.5min$timestamp), 300)))) 
-#           colnames(timestamps) = c("timestamp")
-#           if(length(is.na(mean.5min$timestamp)) == 0) {mean.5min$timestamp <- as.integer(mean.5min$timestamp)} 
-#           if(length(is.na(timestamps$timestamp)) == 0) {timestamps$timestamp <- as.integer(timestamps$timestamp)} 
-#           mean.5min <- timestamps %>% full_join(mean.5min) %>% arrange(timestamp)
-#           
-#           #late$min <- as.POSIXct(format(late$time, "%Y-%m-%d %H:%M"))
-#           #minutes <- data.frame(min = ifelse(length(!is.na(late$min)) == 0, late, data.frame(min =seq(min(late$min), max(late$min), 60)))) 
-#           #colnames(minutes) = c("min")
-#           #if(length(is.na(late$min)) == 0) {late$min <- as.integer(late$min)} 
-#           #late <- minutes %>% full_join(late)
-# 
-#           #if the above uncommented code works, change the code below so that the window is 48 instead of 240 (the number of measurements in a 4-hour rolling window)
-#           latesd <- myrollapply(mean.5min$value.5min, 48, sd)
-#           latemean <- myrollapply(mean.5min$value.5min, 48, mean)
-#           mean.5min[,"sd"] <- latesd
-#           mean.5min[,"mean"] <- latemean
-#           mean.5min$diff <- mean.5min$value.5min - mean.5min$mean
-#           mean.5min$band <- mean.5min$sd*2
-#           
-#           #mean.5min$flag <- NA
-#           #mean.5min$flag <- ifelse(abs(mean.5min$diff) > mean.5min$band, "outlier", mean.5min$flag)
-#           mean.5min$flag <- ifelse(abs(mean.5min$diff) > mean.5min$band, "outlier", NA)
-# 
-#           if(length(is.na(late$timestamp)) == 0) {late$timestamp <- as.integer(late$timestamp)} 
-#           late <- mean.5min %>% mutate(flag = as.character(flag)) %>% full_join(late %>% mutate(flag = as.character(flag)))
-#           
-#           #late <- late %>% filter(!is.na(value.5min)) %>% select(-min)
-#           
-#           flagged.late <- flagged.late %>% bind_rows(late)
-#           }
-#         }
-#       }
-#     }
-#   }
-# }
-
-# flagged <- flagged.late %>% bind_rows(flagged.early)
-# flagged <- unique(flagged)
-# flagged <- flagged %>% filter(!is.na(value))
 ```
 
 ####Add identifier for bad probes (flag = "badProbe"), as determined from plots of individual probe data streams
