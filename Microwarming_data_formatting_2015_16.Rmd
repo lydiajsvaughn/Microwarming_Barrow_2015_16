@@ -450,61 +450,10 @@ write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.
 #Fix this to change the way of identifying complete cases. - I think I need to group on dist also.
 ```{r}
 
-#also do may 28 and aug 15
-# testframe <- flagged %>% filter(date >= "2016-05-28" & date < "2016-05-29")
-# 
-# testframe %>% group_by(block, time, type, heatStat, dist, regStat) %>% summarize(depths = length(unique(depth)))
-# 
-# b4.5 <- testframe %>% filter(block == "4", heatStat == "U", depth == "5")
-# b4.10 <- testframe %>% filter(block == "4", heatStat == "U", depth == "10")
-# b4.15 <- testframe %>% filter(block == "4", heatStat == "U", depth == "15")
-# b4.20 <- testframe %>% filter(block == "4", heatStat == "U", depth == "10")
-# b2.25 <- testframe %>% filter(block == "2", heatStat == "U", depth == "25")
-# b4.35 <- testframe %>% filter(block == "4", heatStat == "U", depth == "35")
-# b4.50 <- testframe %>% filter(block == "4", heatStat == "U", depth == "50")
-# 
-# test.UAvgHAvg.flagged <- testframe %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% mutate(value2 = ifelse(is.na(flag), value, NA)) %>% group_by(block, time, type, dist) %>% summarize(UAvg = mean(value2)) %>% left_join(testframe %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(is.na(flag), value, NA)) %>% group_by(block, time, type, dist) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
-
-
-#Changed to line of code below
-# UAvgHAvg.flagged <- flagged %>% filter(depth != 25, heatStat == "U") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type, dist) %>% summarize(UAvg = mean(value2)) %>% left_join(flagged %>% filter(depth != 25, heatStat == "H", regStat == "R") %>% mutate(value2 = ifelse(flag != "outlier", value, NA)) %>% group_by(block, time, type, dist) %>% summarize(HAvg = mean(value2))) %>% mutate(TempDiff = HAvg - UAvg)
-
 mean.15min.depthavg <- flagged %>% filter(depth != 25, heatStat == "U", is.na(flag)) %>% group_by(block, time_15min) %>% summarize(UnheatedMean = mean(value)) %>% left_join(flagged %>% filter(depth != 25, heatStat == "H", is.na(flag)) %>% group_by(block, time_15min) %>% summarize(HeatedMean = mean(value))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
 
-noband <- flagged %>% filter(is.na(band)) #why did some of these not calculate a sd, mean, band, value.5min, etc?
+#noband <- flagged %>% filter(is.na(band)) #why did some of these not calculate a sd, mean, band, value.5min, etc?
 
-#transform from long to wide, with a value for each depth.  Incomplete cases will have NA for certain depths
-# test.U <- flagged %>% filter(heatStat == "U", is.na(flag)) %>% select(block, time, heatStat, depth, dist, value) 
-# 
-# test.U[c(45527, 45528),]
-# flagged %>% filter(time == "2016-07-24 22:19:39", heatStat == "U", depth == "5", dist == "10")
-
-#%>% spread(depth, value)
-
-#use na.omit to get rid of incomplete cases
-
-#transform back to long format and summarize.
-
-# # there w
-# testframe <- data.frame(time = "2016-06-14 19:00:00", depth = 10)
-# 
-# testframe2 <- testframe %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
-# 
-# test.U <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "U") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
-# 
-# test.H <- flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25))) 
-# 
-# %>% bind_rows(flagged %>% filter(depth %in% c(10, 15, 20, 25), heatStat == "H") %>% select(block, time, heatStat, depth) %>% full_join(data.frame(depth = c(10, 15, 20, 25)))) %>% full_join (flagged) %>% mutate(value2 = ifelse(is.na(flag), value, NA)) 
-# 
-# test$value2 <- ifelse(is.na(test$flag), test$value, NA)
-# 
-# %>% group_by(block, time, heatStat)
-# 
-# test2 <- test %>% filter(block == "1", time == "2016-06-14 19:06:32")
-# 
-# 
-# 
-# #depths <- data.frame(depth = c(10, 15, 20, 25))
 ```
 
 ####Average the Uavg and Havg data every 15 minutes. 
