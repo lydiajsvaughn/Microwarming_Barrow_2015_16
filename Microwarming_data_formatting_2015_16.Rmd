@@ -446,35 +446,35 @@ write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_4
 write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_4")
 ```
 
-####Calculate the depth-averaged temperatures in each plot for each 15-minute, 1-hour, 4-hour, and 6-hour time period.  Also calculate the difference between the heated and unheated plot for each block.  Do not use depth == 25, since it is missing from most (but not all) data streams.    Use only complete cases (i.e., where data exist for all non-25cm depths).
+####Calculate the depth-averaged temperatures in each plot for each 15-minute, 1-hour, 4-hour, and 6-hour time period.  Also calculate the difference between the heated and unheated plot for each block.  Do not use depth == 25, since it is missing from most (but not all) data streams.  Also do not use depth == 15, because it is missing from a large chunk of block 1 and 2.    Use only complete cases (i.e., where data exist for all non-15cm and non-25cm depths).
 #Fix this to change the way of identifying complete cases. - I think I need to group on dist also.
 ```{r}
 #use mean.15min for 15-min depth average, etc.
-#identify complete cases (where all depths are present excepth for 25 cm)
+#identify complete cases (where all depths are present excepth for 15 and 25 cm)
 #average across the depths, using complete cases only.
 
 #15-min average
-mean.15min <-mean.15min %>% full_join(mean.15min %>% filter(depth != 25) %>% group_by(time_15min, block, heatStat) %>% summarize(depths = length(depth))) 
+mean.15min <-mean.15min %>% full_join(mean.15min %>% filter(depth != 25 & depth != 15) %>% group_by(time_15min, block, heatStat) %>% summarize(depths = length(depth))) 
 
-mean.15min.depthavg <- mean.15min %>% filter(depth != 25, depths == 6, heatStat == "U") %>% group_by(block, time_15min) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.15min %>% filter(depth != 25, depths == 6, heatStat == "H") %>% group_by(block, time_15min) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+mean.15min.depthavg <- mean.15min %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(block, time_15min) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.15min %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(block, time_15min) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
 
 
 #15-min average
-mean.hour <-mean.hour %>% full_join(mean.hour %>% filter(depth != 25) %>% group_by(time_hour, block, heatStat) %>% summarize(depths = length(depth))) 
+mean.hour <-mean.hour %>% full_join(mean.hour %>% filter(depth != 25 & depth != 15) %>% group_by(time_hour, block, heatStat) %>% summarize(depths = length(depth))) 
 
-mean.hour.depthavg <- mean.hour %>% filter(depth != 25, depths == 6, heatStat == "U") %>% group_by(block, time_hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.hour %>% filter(depth != 25, depths == 6, heatStat == "H") %>% group_by(block, time_hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+mean.hour.depthavg <- mean.hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(block, time_hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(block, time_hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
 
 
 #4-hour average
-mean.4hour <-mean.4hour %>% full_join(mean.4hour %>% filter(depth != 25) %>% group_by(time_4hour, block, heatStat) %>% summarize(depths = length(depth))) 
+mean.4hour <-mean.4hour %>% full_join(mean.4hour %>% filter(depth != 25 & depth != 15) %>% group_by(time_4hour, block, heatStat) %>% summarize(depths = length(depth))) 
 
-mean.4hour.depthavg <- mean.4hour %>% filter(depth != 25, depths == 6, heatStat == "U") %>% group_by(block, time_4hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.4hour %>% filter(depth != 25, depths == 6, heatStat == "H") %>% group_by(block, time_4hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+mean.4hour.depthavg <- mean.4hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(block, time_4hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.4hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(block, time_4hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
 
 
 #6-hour average
-mean.6hour <-mean.6hour %>% full_join(mean.6hour %>% filter(depth != 25) %>% group_by(time_6hour, block, heatStat) %>% summarize(depths = length(depth))) 
+mean.6hour <-mean.6hour %>% full_join(mean.6hour %>% filter(depth != 25 & depth != 15) %>% group_by(time_6hour, block, heatStat) %>% summarize(depths = length(depth))) 
 
-mean.6hour.depthavg <- mean.6hour %>% filter(depth != 25, depths == 6, heatStat == "U") %>% group_by(block, time_6hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.6hour %>% filter(depth != 25, depths == 6, heatStat == "H") %>% group_by(block, time_6hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+mean.6hour.depthavg <- mean.6hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(block, time_6hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.6hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(block, time_6hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
 
 ```
 
