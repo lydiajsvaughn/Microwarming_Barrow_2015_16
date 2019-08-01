@@ -396,6 +396,29 @@ mean.hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_hour
 
 ```
 
+####Average every 4 hours
+```{r}
+flagged$time_4hour <- floor_datetime(flagged$time, 240 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.4hour <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_4hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.4hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_4hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+```
+
+####Average every 6 hours
+```{r}
+flagged$time_6hour <- floor_datetime(flagged$time, 360 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.6hour <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_6hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.6hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_6hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+
+```
+
 ####Write to csv files
 ```{r}
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
@@ -409,6 +432,18 @@ write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_4.
 
 #temperatures averaged for each probe, every 1-hour interval, outliers omitted
 write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 4-hour interval, outliers omitted
+write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 4-hour interval, outliers omitted
+write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 6-hour interval, outliers omitted
+write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 6-hour interval, outliers omitted
+write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_4")
 ```
 
 ####Calculate the depth-averaged temperatures in the heated and unheated blocks for each 15-minute time period.  Do not use depth == 25, since it is missing from most (but not all) data streams.    Use only complete cases (i.e., where data exist for all non-25cm depths).
