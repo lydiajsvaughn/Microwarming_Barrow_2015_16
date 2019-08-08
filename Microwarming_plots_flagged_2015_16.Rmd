@@ -88,7 +88,8 @@ p1 <- ggplot(mean.15min.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDi
 p1 + plottheme + theme(legend.position = c(.05, .8)) 
 
 #ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_15min_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_15min_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_15min_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #1-hour averages
 p2 <- ggplot(mean.hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
@@ -101,7 +102,8 @@ p2 <- ggplot(mean.hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDif
 p2 + plottheme + theme(legend.position = c(.05, .8)) 
 
 #ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_1h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_1h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #4-hour averages
 p3 <- ggplot(mean.4hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_4hour, color=as.factor(as.character(block)))) +
@@ -115,7 +117,8 @@ p3 <- ggplot(mean.4hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDi
 p3 + plottheme + theme(legend.position = c(.05, .8)) 
 
 #ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_4h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_4h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_4h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #6-hour averages
 p4 <- ggplot(mean.6hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_6hour, color=as.factor(as.character(block)))) +
@@ -129,7 +132,8 @@ p4 <- ggplot(mean.6hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDi
 p4 + plottheme + theme(legend.position = c(.05, .8)) 
 
 #ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_6h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_6h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_6h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 ```
 
@@ -150,7 +154,8 @@ p5 <- ggplot(heatstat.15min.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_
  p5 + plottheme + theme(legend.position = c(.1, .9))
 
 #ggsave("UavgHavg_15min_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-ggsave("flagged_UavgHavg_15min_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_UavgHavg_15min_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_UavgHavg_15min_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #1-hour averages
 
@@ -166,7 +171,8 @@ p6 <- ggplot(heatstat.hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_h
 
 p6 + plottheme + theme(legend.position = c(.1, .9))
  
-ggsave("flagged_UavgHavg_1h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_UavgHavg_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_UavgHavg_1h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #4-hour averages
 heatstat.4hour.avg <- gather(mean.4hour.depthavg, key="Heatstat", value="temp_4hour", 3:4)
@@ -180,7 +186,8 @@ p7 <- ggplot(heatstat.4hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_
 
 p7 + plottheme + theme(legend.position = c(.1, .9))
  
-ggsave("flagged_UavgHavg_4h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_UavgHavg_4h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_UavgHavg_4h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #6-hour averages
 heatstat.6hour.avg <- gather(mean.6hour.depthavg, key="Heatstat", value="temp_6hour", 3:4)
@@ -194,7 +201,8 @@ p8 <- ggplot(heatstat.6hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_
 
 p8 + plottheme + theme(legend.position = c(.1, .9))
  
-ggsave("flagged_UavgHavg_6h_2016_5.png", path="plots/outliers_omitted", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_UavgHavg_6h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_UavgHavg_6h_2015.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 ```
 
 ####Plot 3: Temperature in heated and unheated plots within each block at each depth, using 15-min averaged data
@@ -219,7 +227,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p9 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_15min_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted", width = 8.5, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_15min_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_15min_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
@@ -242,7 +251,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p10 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted", width = 8.5, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
@@ -265,7 +275,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p11 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_4h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted", width = 8.5, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_4h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_4h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
@@ -288,7 +299,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p12 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted", width = 8.5, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
@@ -315,7 +327,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p5 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted", width = 16, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
 
@@ -338,7 +351,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(p5 + plottheme)
 
-ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted", width = 16, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
 ```
