@@ -201,11 +201,8 @@ MyDatesTable.t2.filter %>% filter(Freq > 120)
 ####calculate the sd and mean over every 1-hour window
 ####if value is more than 2 sigma from the mean, flag it as an outlier
 ```{r}
-#create a variable called flag
-long$flag <- NA
-
 #filter all measurements that are wildly too high or too low
-long <- long %>% mutate(flag = if_else(value >= 20 & value <= -5, "outlier", flag))
+long <- long %>% mutate(flag = if_else(value >= 20 & value <= -5, "outlier", "NA"))
 
 flagged <- long[0:0,]
 depths <- unique(long$depth)
@@ -261,16 +258,21 @@ for(i in 1:length(combinations$block)) {
 
 }
 
+#Drop objects to free up memory
+rm(long)
+gc()
+
+#Omit gap-filled timestamps
+flagged <- flagged %>% filter(!is.na(time))
+
 #Assign outlier status to all values that are alone within the rolling window
 flagged <- flagged %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
 
-#Omit repeated rows and gap-filled timestamps
-flagged <- flagged %>% unique() %>% filter(!is.na(value))
+#Omit repeated rows
+#flagged <- flagged %>% unique() #too memory intensive
 
 #flag block 2 Ctl as problematic
 flagged <- flagged %>% mutate(flag = if_else(block == 2 & date >= "2015-10-14" & type == "Ctl", "mislabeled", flag))
-
-
 ```
 
 ####2016 data (skip this chunk for 2015 data)
@@ -427,13 +429,17 @@ flagged <- flagged %>% mutate(flag = if_else(block == "1" & type == "Monitor" & 
 
 Save flagged dataframe (the original dataset plus outlier flags)
 ```{r}
-write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_5.csv") 
+#write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_5.csv") 
+write.csv(flagged, file = "data/2015_organized/flaggedBarrowFile_2015.csv") 
 ```
 
 ####Optional: read in flagged file and format time variable
 ```{r}
-flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_5.csv', stringsAsFactors=F) 
-flagged$time <- as.POSIXct(flagged$time)
+#flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_5.csv', stringsAsFactors=F) 
+
+#flagged <- read.csv('data/2015_organized/flaggedBarrowFile_2015.csv', stringsAsFactors=F) 
+
+#flagged$time <- as.POSIXct(flagged$time)
 ```
 
 ####To visualize outliers
@@ -476,6 +482,8 @@ print(outlierplot + plottheme)
   }
 
 flagged$time_15min <- floor_datetime(flagged$time, 15 * 60)
+
+flagged <- flagged %>% mutate(flag = ifelse(flag == "NA", NA, flag))
 
 #calculate the average for each plot and depth for each 15-minute interval
 mean.15min <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_15min, heatStat, depth) %>% summarize(temp = mean(value)) 
@@ -523,28 +531,37 @@ mean.6hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(block, time_6ho
 ####Write to csv files
 ```{r}
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
+
+#write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
+write.csv(mean.15min, file = "data/2015_organized/flaggedBarrowFile.15min_2015.csv") 
 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
-write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_4")
+#write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_4")
+write.csv(mean.15min.probe, file = "data/2015_organized/flaggedBarrowFile.15min.probe_2015")
 
 #temperatures averaged for each plot and depth for every 1-hour interval, outliers omitted
-write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv") 
+#write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv") 
+write.csv(mean.hour, file = "data/2015_organized/flaggedBarrowFile.1hour_2015.csv") 
 
 #temperatures averaged for each probe, every 1-hour interval, outliers omitted
-write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4")
+#write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4")
+write.csv(mean.hour.probe, file = "data/2015_organized/flaggedBarrowFile.1hour.probe_2015")
 
 #temperatures averaged for each plot and depth for every 4-hour interval, outliers omitted
-write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_4.csv") 
+#write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_4.csv") 
+write.csv(mean.4hour, file = "data/2015_organized/flaggedBarrowFile.4hour_2015.csv") 
 
 #temperatures averaged for each probe, every 4-hour interval, outliers omitted
-write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016_4")
+#write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016_4")
+write.csv(mean.4hour.probe, file = "data/2015_organized/flaggedBarrowFile.4hour.probe_2015")
 
 #temperatures averaged for each plot and depth for every 6-hour interval, outliers omitted
-write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_4.csv") 
+#write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_4.csv") 
+write.csv(mean.6hour, file = "data/2015_organized/flaggedBarrowFile.6hour_2015.csv") 
 
 #temperatures averaged for each probe, every 6-hour interval, outliers omitted
-write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_4")
+#write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_4")
+write.csv(mean.6hour.probe, file = "data/2015_organized/flaggedBarrowFile.6hour.probe_2015")
 ```
 
 ####Calculate the depth-averaged temperatures in each plot for each 15-minute, 1-hour, 4-hour, and 6-hour time period.  Also calculate the difference between the heated and unheated plot for each block.  Do not use depth == 25, since it is missing from most (but not all) data streams.  Also do not use depth == 15, because it is missing from a large chunk of block 1 and 2.    Use only complete cases (i.e., where data exist for all non-15cm and non-25cm depths).
