@@ -62,8 +62,6 @@ long <- long %>% filter(id %in% unique(decoder$id))
 long <- long[long$value != 0.000,]
 #3) If a HAvg or UAvg value is 0.000
 #long <- long[long$HAvg != 0.000 & long$UAvg!= 0.000,]
-#4) If a temperature probe values is greater than 20 or less than -5 (outside the range of reasonable values)
-long <- long %>% filter(value <= 20 & value >= -5)
 
 #Query the remaining unique ids
 unique(long$id)
@@ -116,83 +114,119 @@ for(i in 1:length(decoder$id)){
 }
 ```
 
-####For block 1 from 6/14/16 until 10/14/16, U and H were swapped for regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
+####Clean 2016 data, based on when I know probes were faulty or mislabeled
+#run this chunk only for 2016 data
 ```{r}
-#add variable indicating which data need U/H swapped.  This can take on values of "yes" or NA
+#For block 1 from 6/14/16 until 10/14/16, U and H were swapped for regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
 long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
 
-#swap U and H for the labeled entries
 long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
+
+#Create a variable for flagging bad data
+long <- long %>% mutate(flag = NA)
+
+#Flag the following bad traces:
+#Block 1, Monitor, dist = 10, depth = 20, heatStat = U
+#Block 2, Monitor, dist = 8
+#Block 2, Monitor, dist = 6, heatStat = H
+#Block 3, Ctl, dist = 8, depth = 25, heatStat = H
+#Block 3, Ctl, dist = 6, depth = 20
+#Block 4, Monitor, dist = 10, depth = 50, heatStat = H
+#Block 4, Ctl, dist = 8, depth = 5, heatStat = H, date > 2016-06-01
+long <- long %>% mutate(flag = ifelse(date > "2016-01-01" & block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", ifelse(date > "2016-01-01" & block == "2" & type == "Monitor" & dist == "8", "badProbe", ifelse(date > "2016-01-01" & block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", ifelse(date > "2016-01-01" & block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", ifelse(date > "2016-01-01" & block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", ifelse(date > "2016-01-01" & block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", ifelse(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badTrace", flag))))))))
 ```
 
-####Calculate the number of measurements for each value of the type variable
+####Clean 2015 data, based on when I know probes were faulty or mislabeled
+#comment out this chunk for 2016 data
 ```{r}
-long %>% group_by(type) %>% summarize(length(type))
-long %>% group_by(block) %>% summarize(length(block))
-long %>% group_by(type, block) %>% summarize(length(type))
+#Block 2, type = Monitor, dist = 10 from 2015-08-06 21:00:00 until 2015-09-30 23:59:59: U and H were swapped.  
+long <- long %>% full_join(long %>% filter(block == 2, type == "Monitor", dist == 10, time >= "2015-08-06 21:00:00", time <= "2015-09-30 23:59:59") %>% mutate(UH.swap = "yes"))
 
-unknown <- long %>% filter(block == "unknown")
+long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
+
+#Create a variable for flagging bad data
+long <- long %>% mutate(flag = NA) #uncomment for 2015 data
+
+#Flag the bad traces:
+
+#Block 2, type = Monitor, 2015-09-12 22:00:00 until 2015-09-30 23:59:59
+long <- long %>% mutate(flag = ifelse(block == 2 & type == "Monitor" & time >= "2015-09-12 22:00:00" & time <= "2015-09-30 23:59:59", "badTrace", flag))
+
+#Block 2, type = Monitor, 2015-10-14: points before 17:00:00 are bad
+long <- long %>% mutate(flag = ifelse(block == 2 & type == "Monitor" & time >= "2015-10-14 00:00:00" & time < "2015-10-14 17:00:00", "badTrace", flag))
+
+#Block 2, type = Ctl, after 2015:10:14: trace is mislabeled
+long <- long %>% mutate(flag = ifelse(block == 2 & date >= "2015-10-14" & type == "Ctl", "mislabeled", flag))
+
+#Block 3, type = Monitor, 2015-09-13 02:25:00 until 2015-09-30 23:59:59: bad trace.  (Identify the exact time) 
+long <- long %>% mutate(flag = ifelse(block == 3 & type == "Monitor" & time >= "2015-09-13 02:25:00" & time <= "2015-09-30 23:59:59", "badTrace", flag))
+
+#Block 3, type = Monitor, dist = 10, heatStat = U, 2015-10-14 00:00:00 on
+long <- long %>% mutate(flag = ifelse(block == 3 & type == "Monitor" & dist == 10 & heatStat == "U" & time >= "2015-10-14", "badTrace", flag))
+
+#Block 4, type = Monitor, before 2015-08-14 23:59:59
+long <- long %>% mutate(flag = ifelse(block == 4 & type == "Monitor" & time < "2015-08-14", "badTrace", flag))
 ```
 
 ####Determine how frequently data are recorded
 This Code should be fixed or deleted after I figure out how to deal with the 2015 data.
 ```{r}
-test <- long %>% filter(date >= "2015-10-14", date <= "2015-10-18", block == 2, type == "Ctl") %>% arrange(heatStat, dist, depth, time)
-
-testplot <- ggplot(test %>% filter(as.numeric(log) < 125000), aes(y = as.numeric(log), x = time)) +
-  geom_point(size = 0.1)
-testplot
-ggsave("Ctl2_log_201510.png", path="plots", width = 14, height = 10, dpi = 300)
-
-test2 <- long %>% filter(date >= "2015-10-14", date <= "2015-10-18", block == 2, type == "Monitor") %>% arrange(heatStat, dist, depth, time)
-
-testplot2 <- ggplot(test2 %>% filter(as.numeric(log) < 125000), aes(y = as.numeric(log), x = time)) +
-  geom_point(size = 0.1)
-testplot2
-ggsave("Monitor2_log_201510.png", path="plots", width = 14, height = 10, dpi = 300)
-
-t1 <- long %>% filter(block == 1, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
-
-t2 <- long %>% filter(block == 2, depth == 5, type == "Monitor", heatStat == "H", regStat == "M", dist == 10)
-
-t3 <- long %>% filter(block == 3, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
-
-t4 <- long %>% filter(block == 4, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
-
-MyDatesTable.t1 <- data.frame(table(cut(t1$time, breaks="hour")))
-MyDatesTable.t1 %>% filter(Freq > 120) #If data are recorded every 30 seconds, there should be 120 occurrances per hour.  When Freq > 120, data are being recorded more frequently.
-
-MyDatesTable.t2 <- data.frame(table(cut(t2$time, breaks="hour")))
-MyDatesTable.t2 %>% filter(Freq > 120)
-
-MyDatesTable.t3 <- data.frame(table(cut(t3$time, breaks="hour")))
-MyDatesTable.t4 %>% filter(Freq > 120)
-
-MyDatesTable.t4 <- data.frame(table(cut(t4$time, breaks="hour")))
-MyDatesTable.t4 %>% filter(Freq > 120)
-
-t1.082417 <- t1 %>% filter(time > "2015-08-24 17:00:00", time < "2015-08-24 17:59:59")
-#In this example, Freq = 320.  Here, data are recorded every 30 seconds.  Additionally, data are recorded every 3 seconds from 17:21 through 17:35.
-#For this window, if I want the data every 30 seconds, I can use just the data points with "log" == multiple of 10.
-
-t2.101601 <- t2 %>% filter(time > "2015-10-16 01:00:00", time < "2015-10-16 01:59:59")
-#In this example, Freq = 359.  Here, something weird is going on.  It looks like data are recorded every 30 seconds, but there's a completely different data stream for each HeaterSetting value.  Which HeaterSetting value is correct?  Or are they all correct, but something else is mislabeled?
-
-t2.080620 <- t2 %>% filter(time > "2015-08-06 20:00:00", time < "2015-08-06 20:59:59")
-#In this example, Freq = 230.  Here, data are recorded every 30 seconds for the first 32 minutes, plus every 3 seconds from 20:22 through 20:31.  No data were recorded from 20:32 through 20:59.
-#For this window, I canjust use the data points with "log" == multiple of 10 to filter out the 3-second data.
-
-
-t1.filter <- t1 %>% filter(as.numeric(log) %% 10 == 0) #Filter out any data for which the log value is not a multiple of 10
-t2.filter <- t2 %>% filter(as.numeric(log) %% 10 == 0)
-
-MyDatesTable.t1.filter <- data.frame(table(cut(t1.filter$time, breaks="hour")))
-MyDatesTable.t1.filter %>% filter(Freq > 120)
-#For t1, this filtering seems to have gotten rid of all the data recorded at weird intervals
-
-MyDatesTable.t2.filter <- data.frame(table(cut(t2.filter$time, breaks="hour")))
-MyDatesTable.t2.filter %>% filter(Freq > 120)
-#The weird thing with multiple data streams recording at the same time under different HeaterSetting values happened from 10-14 17:00 through 10-17 23:00
+# test <- long %>% filter(date >= "2015-10-14", date <= "2015-10-18", block == 2, type == "Ctl") %>% arrange(heatStat, dist, depth, time)
+# 
+# testplot <- ggplot(test %>% filter(as.numeric(log) < 125000), aes(y = as.numeric(log), x = time)) +
+#   geom_point(size = 0.1)
+# testplot
+# ggsave("Ctl2_log_201510.png", path="plots", width = 14, height = 10, dpi = 300)
+# 
+# test2 <- long %>% filter(date >= "2015-10-14", date <= "2015-10-18", block == 2, type == "Monitor") %>% arrange(heatStat, dist, depth, time)
+# 
+# testplot2 <- ggplot(test2 %>% filter(as.numeric(log) < 125000), aes(y = as.numeric(log), x = time)) +
+#   geom_point(size = 0.1)
+# testplot2
+# ggsave("Monitor2_log_201510.png", path="plots", width = 14, height = 10, dpi = 300)
+# 
+# t1 <- long %>% filter(block == 1, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
+# 
+# t2 <- long %>% filter(block == 2, depth == 5, type == "Monitor", heatStat == "H", regStat == "M", dist == 10)
+# 
+# t3 <- long %>% filter(block == 3, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
+# 
+# t4 <- long %>% filter(block == 4, depth == 5, type == "Ctl", heatStat == "U", regStat == "R", dist == 8)
+# 
+# MyDatesTable.t1 <- data.frame(table(cut(t1$time, breaks="hour")))
+# MyDatesTable.t1 %>% filter(Freq > 120) #If data are recorded every 30 seconds, there should be 120 occurrances per hour.  When Freq > 120, data are being recorded more frequently.
+# 
+# MyDatesTable.t2 <- data.frame(table(cut(t2$time, breaks="hour")))
+# MyDatesTable.t2 %>% filter(Freq > 120)
+# 
+# MyDatesTable.t3 <- data.frame(table(cut(t3$time, breaks="hour")))
+# MyDatesTable.t4 %>% filter(Freq > 120)
+# 
+# MyDatesTable.t4 <- data.frame(table(cut(t4$time, breaks="hour")))
+# MyDatesTable.t4 %>% filter(Freq > 120)
+# 
+# t1.082417 <- t1 %>% filter(time > "2015-08-24 17:00:00", time < "2015-08-24 17:59:59")
+# #In this example, Freq = 320.  Here, data are recorded every 30 seconds.  Additionally, data are recorded every 3 seconds from 17:21 through 17:35.
+# #For this window, if I want the data every 30 seconds, I can use just the data points with "log" == multiple of 10.
+# 
+# t2.101601 <- t2 %>% filter(time > "2015-10-16 01:00:00", time < "2015-10-16 01:59:59")
+# #In this example, Freq = 359.  Here, something weird is going on.  It looks like data are recorded every 30 seconds, but there's a completely different data stream for each HeaterSetting value.  Which HeaterSetting value is correct?  Or are they all correct, but something else is mislabeled?
+# 
+# t2.080620 <- t2 %>% filter(time > "2015-08-06 20:00:00", time < "2015-08-06 20:59:59")
+# #In this example, Freq = 230.  Here, data are recorded every 30 seconds for the first 32 minutes, plus every 3 seconds from 20:22 through 20:31.  No data were recorded from 20:32 through 20:59.
+# #For this window, I canjust use the data points with "log" == multiple of 10 to filter out the 3-second data.
+# 
+# 
+# t1.filter <- t1 %>% filter(as.numeric(log) %% 10 == 0) #Filter out any data for which the log value is not a multiple of 10
+# t2.filter <- t2 %>% filter(as.numeric(log) %% 10 == 0)
+# 
+# MyDatesTable.t1.filter <- data.frame(table(cut(t1.filter$time, breaks="hour")))
+# MyDatesTable.t1.filter %>% filter(Freq > 120)
+# #For t1, this filtering seems to have gotten rid of all the data recorded at weird intervals
+# 
+# MyDatesTable.t2.filter <- data.frame(table(cut(t2.filter$time, breaks="hour")))
+# MyDatesTable.t2.filter %>% filter(Freq > 120)
+# #The weird thing with multiple data streams recording at the same time under different HeaterSetting values happened from 10-14 17:00 through 10-17 23:00
 
 ```
 
@@ -202,7 +236,7 @@ MyDatesTable.t2.filter %>% filter(Freq > 120)
 ####if value is more than 2 sigma from the mean, flag it as an outlier
 ```{r}
 #filter all measurements that are wildly too high or too low
-long <- long %>% mutate(flag = if_else(value >= 20 & value <= -5, "outlier", "NA"))
+long <- long %>% mutate(flag = if_else(value >= 20 & is.na(flag), "outlier", if_else(value <= -5 & is.na(flag), "outlier", flag)))
 
 flagged <- long[0:0,]
 depths <- unique(long$depth)
@@ -228,7 +262,7 @@ for(i in 1:length(combinations$block)) {
   
   #swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
   
-  early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance)
+  early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, is.na(flag))
   
 #To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
 
@@ -259,8 +293,8 @@ for(i in 1:length(combinations$block)) {
 }
 
 #Drop objects to free up memory
-rm(long)
-gc()
+#rm(long)
+#gc()
 
 #Omit gap-filled timestamps
 flagged <- flagged %>% filter(!is.na(time))
@@ -271,8 +305,9 @@ flagged <- flagged %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
 #Omit repeated rows
 #flagged <- flagged %>% unique() #too memory intensive
 
-#flag block 2 Ctl as problematic
-flagged <- flagged %>% mutate(flag = if_else(block == 2 & date >= "2015-10-14" & type == "Ctl", "mislabeled", flag))
+#Merge with the rows that were previously flagged
+flagged <- flagged %>% bind_rows(long %>% filter(!is.na(flag)))
+
 ```
 
 ####2016 data (skip this chunk for 2015 data)
@@ -280,11 +315,8 @@ flagged <- flagged %>% mutate(flag = if_else(block == 2 & date >= "2015-10-14" &
 ####calculate the sd and mean over every 1-hour window
 ####if value is more than 2 sigma from the mean, flag it as an outlier
 ```{r}
-#create a variable called flag
-long$flag <- NA
-
 #filter all measurements that are wildly too high or too low
-long <- long %>% mutate(flag = if_else(value >= 20 & value <= -5, "outlier", flag))
+long <- long %>% mutate(flag = if_else(value >= 20 & is.na(flag), "outlier", if_else(value <= -5 & is.na(flag), "outlier", flag)))
 
 flagged.early <- long[0:0,]
 depths <- unique(long$depth)
@@ -310,7 +342,7 @@ for(i in 1:length(combinations$block)) {
   
   swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
   
-  early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time < swap[1,1])
+  early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time < swap[1,1], is.na(flag))
   
 #To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
 
@@ -365,7 +397,7 @@ for(i in 1:length(combinations$block)) {
   
   swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
   
-  late <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time >= swap[1,1])
+  late <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time >= swap[1,1], is.na(flag))
 
 #In order to select a 4-hour rolling window, gap-fill the dataset so that is a row for every 5-minute time interval.  This deals with the issue of missing values in the dataset by adding NA rows for these missing values, with an appropriate time stamp.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
 
@@ -411,19 +443,8 @@ flagged.late <- flagged.late %>% unique() %>% filter(!is.na(value))
 
 flagged <- flagged.late %>% bind_rows(flagged.early)
 
-```
+test <- flagged %>% bind_rows(long %>% filter(!is.na(flag)))
 
-####Add identifier for bad probes (flag = "badProbe"), as determined from plots of individual probe data streams
-```{r}
-#Block 1, Monitor, dist = 10, depth = 20, heatStat = U
-#Block 2, Monitor, dist = 8
-#Block 2, Monitor, dist = 6, heatStat = H
-#Block 3, Ctl, dist = 8, depth = 25, heatStat = H
-#Block 3, Ctl, dist = 6, depth = 20
-#Block 4, Monitor, dist = 10, depth = 50, heatStat = H
-#Block 4, Ctl, dist = 8, depth = 5, heatStat = H, date > 2016-06-01
-
-flagged <- flagged %>% mutate(flag = if_else(block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "8", "badProbe", if_else(block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", if_else(block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", if_else(block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", if_else(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badProbe", flag))))))))
 
 ```
 
@@ -599,13 +620,17 @@ mean.6hour.depthavg <- mean.6hour %>% filter(depth != 25, depth != 15, depths ==
 ####Save processed dataframes
 ```{r}
 #temperatures averaged across all depths for every 15-minute interval, outliers ommitted
-write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv") 
+#write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv") 
+write.csv(mean.15min.depthavg, file = "data/2015_organized/flaggedBarrowFile.15min.avg_2015.csv") 
 
-write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_4.csv") 
+#write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_4.csv") 
+write.csv(mean.hour.depthavg, file = "data/2015_organized/flaggedBarrowFile.1hour.avg_2015.csv") 
 
-write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_4.csv") 
+#write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_4.csv") 
+write.csv(mean.4hour.depthavg, file = "data/2015_organized/flaggedBarrowFile.4hour.avg_2015.csv") 
 
-write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6hour.avg_2016_4.csv") 
+#write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6hour.avg_2016_4.csv") 
+write.csv(mean.6hour.depthavg, file = "data/2015_organized/flaggedBarrowFile.6hour.avg_2015.csv") 
 
 #voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
 ```
