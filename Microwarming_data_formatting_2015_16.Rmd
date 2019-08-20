@@ -41,7 +41,7 @@ long <- read.csv('data/2015_organized/longBarrowFile_2015.csv', stringsAsFactors
 
 decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
 
-heatstat <- read.csv('data/HeaterStatus.csv', stringsAsFactors=F)
+heatstat <- read.csv('data/HeaterStatus.csv', stringsAsFactors=F, na.strings = c(""))
 ```
 
 ####Packages
