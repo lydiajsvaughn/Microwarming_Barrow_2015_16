@@ -75,6 +75,7 @@ for (i in 1:length(unique(long$id))) {
 ####Format date and time on all dataframes
 ```{r}
 long$time <- as.POSIXct(long$time)
+long$date <- as.POSIXct(long$date, format = "%Y-%m-%d")
 
 #comment/uncomment for 2015/2016 data
 long <- long %>% filter(long$time < "2016-01-01" & !is.na(long$time)) #2015 data
@@ -83,7 +84,7 @@ long <- long %>% filter(long$time < "2016-01-01" & !is.na(long$time)) #2015 data
 decoder$start_date <- as.POSIXct(decoder$start_date, format = "%m/%d/%y")
 decoder$end_date <- as.POSIXct(decoder$end_date, format = "%m/%d/%y")
 
-heatstat$date <- as.POSIXct(heatstat$date, format = "%Y-%m-%d")
+heatstat$date <- as.POSIXct(heatstat$date, format = "%m/%d/%y")
 
 #comment/uncomment for 2015/2016 data
 decoder <- decoder %>% filter(decoder$start_date < "2016-01-01") #2015 data
@@ -112,6 +113,15 @@ for(i in 1:length(decoder$id)){
   
   long$type <- ifelse(long$id == box & long$time >= starttime & long$time <= endtime, type, long$type)
 }
+```
+
+####Add variable for heater status (ON/OFF)
+```{r}
+#Convert heatstat from wide to long format
+onoff <- heatstat %>% gather(key = "block", value = "heater", 3:6) %>% mutate(block = if_else(block == "b1", "1", if_else(block == "b2", "2", if_else(block == "b3", "3", "4"))))
+
+#add heatstat variable to long dataframe
+long <- long %>% left_join(onoff %>% select(date, block, heater))
 ```
 
 ####Clean 2016 data, based on when I know probes were faulty or mislabeled
