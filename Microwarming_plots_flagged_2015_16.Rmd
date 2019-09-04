@@ -49,6 +49,9 @@ mean.hour <- read.csv('data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv', 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
 mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4', stringsAsFactors=F) 
 
+#heater status changes
+heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016", stringsAsFactors = F)
+
 #change for 2015 vs. 2016 data
 ```
 
@@ -61,6 +64,11 @@ library(tidyverse)
 ```{r}
 mean.15min.depthavg$time_15min <- as.POSIXct(mean.15min.depthavg$time_15min)
 ```
+
+<!-- ####Identify heater on/off points for each plot -->
+<!-- ```{r} -->
+<!-- test <- mean.15min %>% filter(block == 1) %>% select(block, date, heater) -->
+<!-- ``` -->
 
 ####Theme for plot formatting
 ```{r}
