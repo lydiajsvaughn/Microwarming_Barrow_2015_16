@@ -114,24 +114,69 @@ onoff <- heatstat %>% gather(key = "block", value = "heater", 3:6) %>% mutate(bl
 
 #add heatstat variable to long dataframe
 long <- long %>% left_join(onoff %>% select(date, block, heater))
+```
 
-#Make a dataframe of the dates heaters changed status
+###Make a dataframe of the dates heaters changed status
+```{r}
+onoff <- onoff %>% filter(date > "2016-01-01")
+
 switch1 <- onoff %>% filter(block == 1) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
 
 for(i in 2:length(switch1$heater)) {
   
-  switch1[i,]$heatSwitch <- ifelse(switch1$heater[i] %in% c("ON", "ON*") & !(switch1$heater[i-1] %in% c("ON", "ON*")), "heat.on", NA)
+  switch1[i,]$heatSwitch <- ifelse(switch1$heater[i] %in% c("ON", "ON*") & !(switch1$heater[i-1] %in% c("ON", "ON*")), "heat.start", NA)
+  
+  switch1[i-1,]$heatSwitch <- ifelse(switch1$heater[i-1] %in% c("ON", "ON*") & !(switch1$heater[i] %in% c("ON", "ON*")), "heat.end", switch1[i-1,]$heatSwitch)
+  
+}
+
+switch2 <- onoff %>% filter(block == 2) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
+
+for(i in 2:length(switch2$heater)) {
+  
+  switch2[i,]$heatSwitch <- ifelse(switch2$heater[i] %in% c("ON", "ON*") & !(switch2$heater[i-1] %in% c("ON", "ON*")), "heat.start", NA)
+  
+  switch2[i-1,]$heatSwitch <- ifelse(switch2$heater[i-1] %in% c("ON", "ON*") & !(switch2$heater[i] %in% c("ON", "ON*")), "heat.end", switch2[i-1,]$heatSwitch)
+  
+}
+
+switch3 <- onoff %>% filter(block == 3) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
+
+for(i in 2:length(switch3$heater)) {
+  
+  switch3[i,]$heatSwitch <- ifelse(switch3$heater[i] %in% c("ON", "ON*") & !(switch3$heater[i-1] %in% c("ON", "ON*")), "heat.start", NA)
+  
+  switch3[i-1,]$heatSwitch <- ifelse(switch3$heater[i-1] %in% c("ON", "ON*") & !(switch3$heater[i] %in% c("ON", "ON*")), "heat.end", switch3[i-1,]$heatSwitch)
+  
+}
+
+
+switch4 <- onoff %>% filter(block == 4) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
+
+for(i in 2:length(switch4$heater)) {
+  
+  switch4[i,]$heatSwitch <- ifelse(switch4$heater[i] %in% c("ON", "ON*") & !(switch4$heater[i-1] %in% c("ON", "ON*")), "heat.start", NA)
+  
+  switch4[i-1,]$heatSwitch <- ifelse(switch4$heater[i-1] %in% c("ON", "ON*") & !(switch4$heater[i] %in% c("ON", "ON*")), "heat.end", switch4[i-1,]$heatSwitch)
   
 }
   
+heat.switch <- switch1 %>% full_join(switch2) %>% full_join(switch3) %>% full_join(switch4) %>% filter(!is.na(heatSwitch)) %>% select(-heater) %>% rename("time" = "date")
 
+write.csv(heat.switch, file = "data/2016_organized/heaterSwitch_2016.csv") 
 ```
 
 ####Clean 2016 data, based on when I know probes were faulty or mislabeled
 #run this chunk only for 2016 data
 ```{r}
-#For block 1 from 6/14/16 until 10/14/16, U and H were swapped for regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
+#U and H were swapped for the following traces:
+#Block 1 from 6/14/16 until 10/14/16, regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  
+#Block 4, dist = 8, before 2016-05-25 
+
 long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
+
+#add to above
+ %>% full_join(long %>% filter(block == 4, dist == 8, time < "2015-05-25") %>% mutate(UH.swap = "yes"))
 
 long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
 
