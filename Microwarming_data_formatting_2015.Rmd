@@ -1,5 +1,5 @@
 ---
-title: "Microwarming_data_formatting"
+title: "Microwarming data formatting 2015"
 author: "Lydia Vaughn"
 date: "22/05/2018"
 output: html_document
@@ -122,6 +122,19 @@ onoff <- heatstat %>% gather(key = "block", value = "heater", 3:6) %>% mutate(bl
 
 #add heatstat variable to long dataframe
 long <- long %>% left_join(onoff %>% select(date, block, heater))
+
+#Make a dataframe of the dates heaters changed status
+switch1 <- onoff %>% filter(block == 1) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
+
+for(i in 2:length(switch1$heater)) {
+  
+  #switch1 <- switch1 %>% mutate(heatSwitch[i] = ifelse(switch1$heater[i] %in% c("ON", "ON*") & !(switch1$heater[i-1] %in% c("ON", "ON*")), "heat.on", NA))
+  
+  switch1[i,]$heatSwitch <- ifelse(switch1$heater[i] %in% c("ON", "ON*") & !(switch1$heater[i-1] %in% c("ON", "ON*")), "heat.on", NA)
+  
+}
+  
+
 ```
 
 ####Clean 2016 data, based on when I know probes were faulty or mislabeled
