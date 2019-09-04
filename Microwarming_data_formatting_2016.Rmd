@@ -173,10 +173,7 @@ write.csv(heat.switch, file = "data/2016_organized/heaterSwitch_2016.csv")
 #Block 1 from 6/14/16 until 10/14/16, regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  
 #Block 4, dist = 8, before 2016-05-25 
 
-long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
-
-#add to above
- %>% full_join(long %>% filter(block == 4, dist == 8, time < "2015-05-25") %>% mutate(UH.swap = "yes"))
+long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes")) %>% full_join(long %>% filter(block == 4, dist == 8, time < "2016-05-25") %>% mutate(UH.swap = "yes"))
 
 long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
 
