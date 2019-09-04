@@ -1,0 +1,445 @@
+---
+title: "Microwarming data formatting 2016"
+"
+author: "Lydia Vaughn"
+date: "22/05/2018"
+output: html_document
+---
+#Description
+```
+This script reformats and processes data saved in line 249 of the "Barrow Data" script.  Processing includes outlier detection and recoding data with associated plot numbers.  The data originate from an field soil warming experiment in Barrow, Alaska.
+
+Notes on column headers:
+Uavg = the average of the regulator probes (regStat = "R") in the unheated plots (heatStat = "U") between depths of 10 and 25 cm (depth = c(10, 15, 20, 25))
+```
+#Code
+
+##Install required packages
+
+These packages only need to be installed once, then this code can be commented out or deleted.
+
+Often, knitr does not like to install from the command window. If this is the case, look to the bottom right window and click on Packages -> Install -> and search for `knitr` in the window that opens.  
+
+Knitr will provide a row of buttons across the top of the top left window in RStudio which allow you to view this document in html format (by clicking on the "Knit HTML" button), as well as run some or all of the code chunks below (by clicking on the "Chunks" button)
+
+```{r}
+#uncomment to install packages from command line
+#install.packages("knitr")
+#install.packages("zoo")
+#install.packages("tidyverse")
+#install.packages("lubridate")
+```
+
+####Read in files
+```{r}
+#complete 2016 dataset:
+long <- read.csv('data/2016_organized/longBarrowFile_2016_4.csv', stringsAsFactors=F) 
+
+decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
+
+heatstat <- read.csv('data/HeaterStatus.csv', stringsAsFactors=F, na.strings = c(""))
+```
+
+####Packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(zoo)
+```
+
+####QA/QC full dataset
+```{r}
+unique(long$id)
+#Drop the row if:
+
+#1) If the value of id is not one of the strings listed in the decoder
+long <- long %>% filter(id %in% unique(decoder$id))
+#2) If a temperature probe value is 0.000
+long <- long[long$value != 0.000,]
+#3) If a HAvg or UAvg value is 0.000
+#long <- long[long$HAvg != 0.000 & long$UAvg!= 0.000,]
+
+#Query the remaining unique ids
+unique(long$id)
+
+#Figure out which of these ids have normal temperature values by asking for the summary for each id 
+for (i in 1:length(unique(long$id))) {
+  print(summary(long[long$id == unique(long$id)[i],]))
+}  
+```
+
+####Format date and time on all dataframes
+```{r}
+long$time <- as.POSIXct(long$time)
+long$date <- as.POSIXct(long$date, format = "%Y-%m-%d")
+
+long <- long %>% filter(long$time > "2016-05-13" & !is.na(long$time))
+
+decoder$start_date <- as.POSIXct(decoder$start_date, format = "%m/%d/%y")
+decoder$end_date <- as.POSIXct(decoder$end_date, format = "%m/%d/%y")
+
+heatstat$date <- as.POSIXct(heatstat$date, format = "%m/%d/%y")
+
+decoder <- decoder %>% filter(decoder$start_date > "2016-01-01")
+
+decoder$start_time <- paste(decoder$start_date, decoder$start_time)
+decoder$end_time <- paste(decoder$end_date, decoder$end_time)
+
+decoder$start_time <- as.POSIXct(decoder$start_time)
+decoder$end_time <- as.POSIXct(decoder$end_time)
+```
+
+####Assign proper block and regStat to given control box id
+```{r}
+long$block <- "unknown"
+long$type <- "unknown"
+
+for(i in 1:length(decoder$id)){
+  box <- decoder$id[i]
+  block <- decoder$block[i]
+  type <- decoder$board_type[i]
+  starttime <- decoder$start_time[i]
+  endtime <- decoder$end_time[i]
+  
+  long$block <- ifelse(long$id == box & long$time >= starttime & long$time <= endtime, block, long$block)
+  
+  long$type <- ifelse(long$id == box & long$time >= starttime & long$time <= endtime, type, long$type)
+}
+```
+
+####Add variable for heater status (ON/OFF)
+```{r}
+#Convert heatstat from wide to long format
+onoff <- heatstat %>% gather(key = "block", value = "heater", 3:6) %>% mutate(block = if_else(block == "b1", "1", if_else(block == "b2", "2", if_else(block == "b3", "3", "4"))))
+
+#add heatstat variable to long dataframe
+long <- long %>% left_join(onoff %>% select(date, block, heater))
+
+#Make a dataframe of the dates heaters changed status
+switch1 <- onoff %>% filter(block == 1) %>% select(block, date, heater) %>% mutate(heatSwitch = NA)
+
+for(i in 2:length(switch1$heater)) {
+  
+  switch1[i,]$heatSwitch <- ifelse(switch1$heater[i] %in% c("ON", "ON*") & !(switch1$heater[i-1] %in% c("ON", "ON*")), "heat.on", NA)
+  
+}
+  
+
+```
+
+####Clean 2016 data, based on when I know probes were faulty or mislabeled
+#run this chunk only for 2016 data
+```{r}
+#For block 1 from 6/14/16 until 10/14/16, U and H were swapped for regulator probes, starting a ~19:00 except for the 35 and 50 cm depths.  Swap H and U for the affected data.  
+long <- long %>% full_join(long %>% filter(id == "89A1" & time >= "2016-06-14 18:02:30" & time <= "2016-10-14 14:49:38" & regStat == "R") %>% full_join(long %>% filter(id == "B7D1" & time >= "2016-06-14 19:01:28" & time <= "2016-10-14 14:46:40" & regStat == "R")) %>% mutate(UH.swap = "yes"))
+
+long <- long %>% filter(is.na(UH.swap)) %>% full_join(long %>% filter(!is.na(UH.swap)) %>% mutate(heatStat = if_else(heatStat == "U", "H", "U"))) %>% select(-UH.swap)
+
+#Create a variable for flagging bad data
+long <- long %>% mutate(flag = NA)
+
+#Flag the following bad traces:
+#Block 1, Monitor, dist = 10, depth = 20, heatStat = U
+#Block 2, Monitor, dist = 8
+#Block 2, Monitor, dist = 6, heatStat = H
+#Block 3, Ctl, dist = 8, depth = 25, heatStat = H
+#Block 3, Ctl, dist = 6, depth = 20
+#Block 4, Monitor, dist = 10, depth = 50, heatStat = H
+#Block 4, Ctl, dist = 8, depth = 5, heatStat = H, date > 2016-06-01
+long <- long %>% mutate(flag = ifelse(date > "2016-01-01" & block == "1" & type == "Monitor" & dist == "10" & depth == "20" & heatStat == "U", "badProbe", ifelse(date > "2016-01-01" & block == "2" & type == "Monitor" & dist == "8", "badProbe", ifelse(date > "2016-01-01" & block == "2" & type == "Monitor" & dist == "6" & heatStat == "H", "badProbe", ifelse(date > "2016-01-01" & block == "3" & type == "Ctl" & dist == "8" & depth == "25" & heatStat == "H", "badProbe", ifelse(date > "2016-01-01" & block == "3" & type == "Ctl" & dist == "6" & depth == "20", "badProbe", ifelse(date > "2016-01-01" & block == "4" & type == "Monitor" & dist == "10" & depth == "50" & heatStat == "H", "badProbe", ifelse(block == "4" & type == "Ctl" & dist == "8" & depth == "5" & heatStat == "H" & date > "2016-06-01", "badTrace", flag))))))))
+```
+
+####Flag outliers on all time series recorded at 30 second intervals
+####calculate the sd and mean over every 1-hour window
+####if value is more than 2 sigma from the mean, flag it as an outlier
+```{r}
+#filter all measurements that are wildly too high or too low
+long <- long %>% mutate(flag = if_else(value >= 20 & is.na(flag), "outlier", if_else(value <= -5 & is.na(flag), "outlier", flag)))
+
+flagged.early <- long[0:0,]
+depths <- unique(long$depth)
+board_type <- unique(long$type)
+heatStat <- unique(long$heatStat)
+regStat <- unique(long$regStat)
+dist <- unique(long$dist)
+
+#function to calculate mean and sd for a rolling window
+myrollapply <- function(vec, width, FUN) 
+    sapply(seq_along(vec), 
+           function(i) FUN(vec[(i-min(i, width/2)):(i+width/2)], na.rm=T))
+
+combinations <- long %>% select(block, depth, type, heatStat, regStat, dist) %>% distinct()
+
+for(i in 1:length(combinations$block)) {
+  plot <- combinations$block[i]
+  cm <- combinations$depth[i]
+  MC <- combinations$type[i]
+  HU <- combinations$heatStat[i]
+  RM <- combinations$regStat[i]
+  distance <- combinations$dist[i]
+  
+  swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
+  
+  early <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, time < swap[1,1], is.na(flag))
+  
+#To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
+
+#(1) Assign each measurement to the beginning of a 30-second window (because while they are recorded approximately every 30 seconds, the clock occasionally shifts by a second or two).
+  early$timestamp <- floor_date(early$time, "0.5 mins")
+
+#(2) Gap-fill the dataset so there is a row every 30 seconds.  
+  timestamps <- data.frame(timestamp = ifelse(length(!is.na(early$timestamp)) == 0, early, data.frame(timestamp =seq(min(early$timestamp), max(early$timestamp), 30)))) 
+  
+  colnames(timestamps) = c("timestamp")
+  
+  if(length(is.na(early$timestamp)) == 0) {early$timestamp <- as.integer(early$timestamp)} 
+
+  if(length(is.na(timestamps$timestamp)) == 0) {timestamps$timestamp <- as.integer(timestamps$timestamp)} 
+
+  early <- timestamps %>% full_join(early) %>% arrange(timestamp)
+  
+  earlysd <- myrollapply(early$value, 120, sd)
+  earlymean <- myrollapply(early$value, 120, mean)
+  early[,"sd"] <- earlysd
+  early[,"mean"] <- earlymean
+  early$diff <- early$value - early$mean
+  early$band <- early$sd*2
+  early$flag <- ifelse(abs(early$diff) > early$band, "outlier", early$flag)
+          
+  flagged.early <- rbind(flagged.early, early)
+
+}
+
+#Assign outlier status to all values that are alone within the rolling window
+flagged.early <- flagged.early %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
+
+#Omit repeated rows and gap-filled timestamps
+flagged.early <- flagged.early %>% unique() %>% filter(!is.na(value))
+
+```
+
+####Flag outliers on all time series recorded at 5 minute intervals
+####use 4-hour rolling window
+```{r}
+
+flagged.late <- long[0:0,]
+
+for(i in 1:length(combinations$block)) {
+  plot <- combinations$block[i]
+  cm <- combinations$depth[i]
+  MC <- combinations$type[i]
+  HU <- combinations$heatStat[i]
+  RM <- combinations$regStat[i]
+  distance <- combinations$dist[i]
+  
+  swap <- decoder %>% filter(block == plot, board_type == MC, start_date > "2016-01-01", interval == "5 minutes") %>% select(start_time)
+  
+  late <- long %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, time >= swap[1,1], is.na(flag))
+
+#In order to select a 4-hour rolling window, gap-fill the dataset so that is a row for every 5-minute time interval.  This deals with the issue of missing values in the dataset by adding NA rows for these missing values, with an appropriate time stamp.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
+
+#(1) Assign each measurement to the beginning of a 5-minute window (because while they are recorded approximately every 5 minutes, the clock occasionally shifts by a second or two).
+  late$timestamp <- floor_date(late$time, "5 mins")
+
+#(2) To make sure there is exactly one measurement every 5 minutes, compute a 5-minute average
+  mean.5min <- late %>% group_by(timestamp) %>% summarize(value.5min = mean(value, na.rm = T))
+
+#(3) Gap-fill the dataset so there is a row every 5 minutes.  
+  timestamps <- data.frame(timestamp = ifelse(length(!is.na(mean.5min$timestamp)) == 0, mean.5min, data.frame(timestamp =seq(min(mean.5min$timestamp), max(mean.5min$timestamp), 300)))) 
+  
+  colnames(timestamps) = c("timestamp")
+  
+  if(length(is.na(mean.5min$timestamp)) == 0) {mean.5min$timestamp <- as.integer(mean.5min$timestamp)} 
+  
+  if(length(is.na(timestamps$timestamp)) == 0) {timestamps$timestamp <- as.integer(timestamps$timestamp)} 
+  
+  mean.5min <- timestamps %>% full_join(mean.5min) %>% arrange(timestamp)
+          
+  latesd <- myrollapply(mean.5min$value.5min, 48, sd)
+  latemean <- myrollapply(mean.5min$value.5min, 48, mean)
+  mean.5min[,"sd"] <- latesd
+  mean.5min[,"mean"] <- latemean
+  mean.5min$diff <- mean.5min$value.5min - mean.5min$mean
+  mean.5min$band <- mean.5min$sd*2
+  
+  mean.5min$flag <- ifelse(abs(mean.5min$diff) > mean.5min$band, "outlier", NA)
+               
+  if(length(is.na(late$timestamp)) == 0) {late$timestamp <- as.integer(late$timestamp)} 
+
+  late <- mean.5min %>% mutate(flag = as.character(flag)) %>% full_join(late %>% mutate(flag = as.character(flag)))
+  
+  flagged.late <- flagged.late %>% bind_rows(late)
+
+}
+
+#Assign outlier status to all values that are alone within the rolling window
+flagged.late <- flagged.late %>% mutate(flag = if_else(diff == 0.0000, "outlier", flag))
+
+#Omit repeated rows and gap-filled timestamps
+flagged.late <- flagged.late %>% unique() %>% filter(!is.na(value))
+
+flagged <- flagged.late %>% bind_rows(flagged.early)
+
+test <- flagged %>% bind_rows(long %>% filter(!is.na(flag)))
+
+
+```
+
+Save flagged dataframe (the original dataset plus outlier flags)
+```{r}
+write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_5.csv") 
+```
+
+####Optional: read in flagged file and format time variable
+```{r}
+#flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_5.csv', stringsAsFactors=F) 
+
+#flagged$time <- as.POSIXct(flagged$time)
+```
+
+####To visualize outliers
+```{r}
+plottheme <- theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank()) +
+  theme(axis.text.y = element_text(color="black", size=12)) +
+  theme(axis.text.x = element_text(color="black", size=12, angle=90, vjust=.5)) +
+  theme(axis.title.y = element_text(size=14)) +
+  theme(axis.title.x = element_blank()) +
+  theme(legend.position = c(.9, .85)) +
+  theme(legend.title = element_text(size=14)) +
+  theme(legend.text = element_text(size=12))
+
+#outliers <- flagged %>% filter(add criteria here)
+outliers <- flagged %>% filter(date == "2016-06-17", block == 1, heatStat == "U", )
+
+outlierplot <- ggplot(outliers, aes(y = value, x = time)) +
+  #geom_point(pch = 1, color = flag) +
+  geom_point() +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time")
+print(outlierplot + plottheme)
+```
+
+####Average every 15 minutes. 
+```{r}
+  floor_datetime <- function(date_var, floor_seconds = 60, 
+        origin = "1970-01-01") { # defaults to minute rounding
+     if(!is(date_var, "POSIXct")) stop("Please pass in a POSIXct variable")
+     if(is.na(date_var)) return(as.POSIXct(NA)) else {
+        return(as.POSIXct(floor(as.numeric(date_var) / 
+           (floor_seconds))*(floor_seconds), origin = origin))
+     }
+  }
+
+flagged$time_15min <- floor_datetime(flagged$time, 15 * 60)
+
+flagged <- flagged %>% mutate(flag = ifelse(flag == "NA", NA, flag))
+
+#calculate the average for each plot and depth for each 15-minute interval
+mean.15min <- flagged %>% filter(is.na(flag)) %>% group_by(date, block, time_15min, heatStat, depth, heater) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.15min.probe <- flagged %>% filter(is.na(flag)) %>% group_by(date, block, time_15min, heatStat, depth, regStat, dist, type, heater) %>% summarize(temp = mean(value)) 
+
+```
+
+####Average every hour
+```{r}
+flagged$time_hour <- floor_datetime(flagged$time, 60 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.hour <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+
+```
+
+####Average every 4 hours
+```{r}
+flagged$time_4hour <- floor_datetime(flagged$time, 240 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.4hour <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_4hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.4hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_4hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+```
+
+####Average every 6 hours
+```{r}
+flagged$time_6hour <- floor_datetime(flagged$time, 360 * 60)
+
+#calculate the average for each plot and depth for each 1-hour interval
+mean.6hour <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_6hour, heatStat, depth) %>% summarize(temp = mean(value)) 
+
+#calculate the average for each probe for each 15-minute interval
+mean.6hour.probe <- flagged %>% filter(is.na(flag)) %>% group_by(date, heater, block, time_6hour, heatStat, depth, regStat, dist, type) %>% summarize(temp = mean(value)) 
+
+```
+
+####Write to csv files
+```{r}
+#temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
+write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_4.csv") 
+
+#temperatures averaged for each probe, every 15-min interval, outliers omitted
+write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 1-hour interval, outliers omitted
+write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 1-hour interval, outliers omitted
+write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 4-hour interval, outliers omitted
+write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 4-hour interval, outliers omitted
+write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016_4")
+
+#temperatures averaged for each plot and depth for every 6-hour interval, outliers omitted
+write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_4.csv") 
+
+#temperatures averaged for each probe, every 6-hour interval, outliers omitted
+write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_4")
+```
+
+####Calculate the depth-averaged temperatures in each plot for each 15-minute, 1-hour, 4-hour, and 6-hour time period.  Also calculate the difference between the heated and unheated plot for each block.  Do not use depth == 25, since it is missing from most (but not all) data streams.  Also do not use depth == 15, because it is missing from a large chunk of block 1 and 2.    Use only complete cases (i.e., where data exist for all non-15cm and non-25cm depths).
+```{r}
+#15-min average
+mean.15min <-mean.15min %>% full_join(mean.15min %>% filter(depth != 25 & depth != 15) %>% group_by(time_15min, block, heatStat) %>% summarize(depths = length(depth))) 
+
+mean.15min.depthavg <- mean.15min %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(date, heater, block, time_15min) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.15min %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(date, heater, block, time_15min) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+
+#1-hour average
+mean.hour <-mean.hour %>% full_join(mean.hour %>% filter(depth != 25, depth != 15) %>% group_by(time_hour, block, heatStat) %>% summarize(depths = length(depth))) 
+
+mean.hour.depthavg <- mean.hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(date, heater, block, time_hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(date, heater, block, time_hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+
+#4-hour average
+mean.4hour <-mean.4hour %>% full_join(mean.4hour %>% filter(depth != 25, depth != 15) %>% group_by(time_4hour, block, heatStat) %>% summarize(depths = length(depth))) 
+
+mean.4hour.depthavg <- mean.4hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(date, heater, block, time_4hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.4hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(date, heater, block, time_4hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+
+#6-hour average
+mean.6hour <-mean.6hour %>% full_join(mean.6hour %>% filter(depth != 25, depth != 15) %>% group_by(time_6hour, block, heatStat) %>% summarize(depths = length(depth))) 
+
+mean.6hour.depthavg <- mean.6hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "U") %>% group_by(date, heater, block, time_6hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.6hour %>% filter(depth != 25, depth != 15, depths == 5, heatStat == "H") %>% group_by(date, heater, block, time_6hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+
+```
+
+####Save processed dataframes
+```{r}
+#temperatures averaged across all depths for every 15-minute interval, outliers ommitted
+write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv") 
+
+write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_4.csv") 
+
+write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_4.csv") 
+
+write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6hour.avg_2016_4.csv") 
+
+#voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
+```
+
