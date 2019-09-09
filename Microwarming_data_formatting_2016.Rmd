@@ -526,9 +526,5 @@ write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6ho
 
 ####Calculate average heating effect (H-U) across plots for each depth, only when heaters are on
 ```{r}
-mean.4hour.blockavg <- mean.4hour %>% filter(heater %in% c("ON", "ON*") & !depth %in% c(15, 25)) %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) 
-
-###Why are there instances on 8/19/21 where the date and time list different dates???
-
-%>% group_by(time_4hour, depth) %>% summarize(TempDiff = mean(TempDiff, na.rm = T), sd = sd(TempDiff, na.rm = T), n = length(!is.na(depth)))
+mean.4hour.blockavg <- mean.4hour %>% select(-depths) %>% filter(heater %in% c("ON", "ON*")) %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(!is.na(TempDiff)) %>% group_by(time_4hour, depth) %>% summarize(mean.TempDiff = mean(TempDiff), sd = sd(TempDiff), n = length(depth), se = sd / n^0.5)
 ```
