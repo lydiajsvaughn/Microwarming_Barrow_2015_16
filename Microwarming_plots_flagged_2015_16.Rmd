@@ -52,6 +52,9 @@ mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2
 #temperatures averaged for each distance from the plot center, every hour, outliers omitted
 mean.hour.dist <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.dist_2016_4', stringsAsFactors=F) 
 
+#temperatures averaged for each distance from the plot center, every hour, outliers omitted
+mean.hour.blockavg <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016_2.csv', stringsAsFactors=F) 
+
 #heater status changes
 heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016", stringsAsFactors = F)
 
@@ -83,184 +86,111 @@ plottheme <- theme_bw() +
   theme(axis.title.x = element_blank()) +
   theme(legend.title = element_text(size=14)) +
   theme(legend.text = element_text(size=12)) 
-
 ```
 
-####Plot 1: depth-averaged temperature difference in heated minus control blocks
+####Depth-averaged temperature difference in heated minus control blocks
 ```{r}
-#15-min averages
-p1 <- ggplot(mean.15min.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_15min, color=as.factor(as.character(block)))) +
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
+
+tempdiff <- ggplot(mean.hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
   geom_point(pch=1) +
   ylab(expression("Heated minus control"~(degree*C))) +
   xlab("Time") +
   scale_color_discrete(name="Block") +
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
 
-p1 + plottheme + theme(legend.position = c(.05, .2)) 
+tempdiff + plottheme + theme(legend.position = c(.05, .2)) 
 
-#ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-#ggsave("flagged_TempDiff_15min_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_15min_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
-
-#1-hour averages
-p2 <- ggplot(mean.hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
-  geom_point(pch=1) +
-  ylab(expression("Heated minus control"~(degree*C))) +
-  xlab("Time") +
-  scale_color_discrete(name="Block") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-p2 + plottheme + theme(legend.position = c(.05, .2)) 
-
-#ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
 #ggsave("flagged_TempDiff_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
 ggsave("flagged_TempDiff_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #4-hour averages
-p3 <- ggplot(mean.4hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_4hour, color=as.factor(as.character(block)))) +
-  geom_point(size = 0.1) +
-  geom_line() +
-  ylab(expression("Heated minus control"~(degree*C))) +
-  xlab("Time") +
-  scale_color_discrete(name="Block") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-p3 + plottheme + theme(legend.position = c(.05, .2)) 
-
-#ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-#ggsave("flagged_TempDiff_4h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_4h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
-
-#6-hour averages
-p4 <- ggplot(mean.6hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_6hour, color=as.factor(as.character(block)))) +
-  geom_point(size = 0.1) +
-  geom_line() +
-  ylab(expression("Heated minus control"~(degree*C))) +
-  xlab("Time") +
-  scale_color_discrete(name="Block") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-p4 + plottheme + theme(legend.position = c(.05, .2)) 
-
-#ggsave("TempDiff_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-#ggsave("flagged_TempDiff_6h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_6h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
-
+# tempdiff <- ggplot(mean.4hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_4hour, color=as.factor(as.character(block)))) +
+#   geom_point(size = 0.1) +
+#   geom_line() +
+#   ylab(expression("Heated minus control"~(degree*C))) +
+#   xlab("Time") +
+#   scale_color_discrete(name="Block") +
+#   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+# 
+# tempdiff + plottheme + theme(legend.position = c(.05, .2)) 
+# 
+# #ggsave("flagged_TempDiff_4h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+# ggsave("flagged_TempDiff_4h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 ```
 
 ####Overlay TempDiff plot with the mean temperature difference when heaters are on
 ```{r}
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
+
 mean.hour.depthavg <- mean.hour.depthavg %>% mutate(data.type = ifelse(block == "all", "mean", "trace"))
 
-#1-hour averages
-p2 <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(data.type)))) +
+tempdiff.mean <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(data.type)))) +
   geom_point(pch=16, alpha = 0.8, size = 2) +
   ylab(expression("Heated minus control"~(degree*C))) +
   xlab("Time") +
   scale_color_manual(name="data type", values = c("gray0", "gray77")) +
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
 
-p2 + plottheme + theme(legend.position = c(.05, .2)) 
+tempdiff.mean + plottheme + theme(legend.position = c(.05, .2)) 
 
 #ggsave("flagged_TempDiff_mean_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
 ggsave("flagged_TempDiff_mean_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+
+#Different coloring
+tempdiff.mean.color <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
+  geom_point(pch=16, alpha = 0.8, size = 2) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_color_manual(name="block", values = c("slategray1", "lavender", "darkseagreen1", "lemonchiffon1", "black")) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+tempdiff.mean.color + plottheme + theme(legend.position = c(.05, .2)) 
+
+#ggsave("flagged_TempDiff_mean_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_mean_color_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 ```
 
-####Plot 2: depth-averaged temperature in heated and unheated blocks, all blocks on one set of axes
+####Depth-averaged temperature in heated and unheated blocks, all blocks on one set of axes
 ```{r}
-#15-min averages
-
-#switch tempratures from wide to long format
-heatstat.15min.avg <- gather(mean.15min.depthavg, key="Heatstat", value="temp_15min", UnheatedMean:HeatedMean)
-
-p5 <- ggplot(heatstat.15min.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_15min, x = time_15min, color = Heatstat)) +
-   geom_point(pch = 1, size = 0.5) +
-   ylab(expression("Temperature" ~ (degree * C))) +
-   xlab("Time") +
-   scale_color_discrete(name = "Heater status", breaks = c("HeatedMean", "UnheatedMean"), labels = c("Heated", "Unheated")) +
-   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
- 
- p5 + plottheme + theme(legend.position = c(.1, .2))
-
-#ggsave("UavgHavg_15min_2015.png", path="plots", width = 14, height = 7, dpi = 300)
-#ggsave("flagged_UavgHavg_15min_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_UavgHavg_15min_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
-
-#1-hour averages
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
 
 #switch tempratures from wide to long format
 heatstat.hour.avg <- gather(mean.hour.depthavg, key="Heatstat", value="temp_hour", UnheatedMean:HeatedMean)
 
-p6 <- ggplot(heatstat.hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_hour, x = time_hour, color = Heatstat)) +
+UavgHavg <- ggplot(heatstat.hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_hour, x = time_hour, color = Heatstat)) +
    geom_point(pch = 1, size = 0.5) +
    ylab(expression("Temperature" ~ (degree * C))) +
    xlab("Time") +
    scale_color_discrete(name = "Heater status", breaks = c("HeatedMean", "UnheatedMean"), labels = c("Heated", "Unheated")) +
    scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
 
-p6 + plottheme + theme(legend.position = c(.1, .2))
+UavgHavg + plottheme + theme(legend.position = c(.1, .2))
  
 #ggsave("flagged_UavgHavg_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
 ggsave("flagged_UavgHavg_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
-#4-hour averages
-heatstat.4hour.avg <- gather(mean.4hour.depthavg, key="Heatstat", value="temp_4hour", UnheatedMean:HeatedMean)
+# #15-min averages
 
-p7 <- ggplot(heatstat.4hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_4hour, x = time_4hour, color = Heatstat)) +
-   geom_point(pch = 1, size = 0.5) +
-   ylab(expression("Temperature" ~ (degree * C))) +
-   xlab("Time") +
-   scale_color_discrete(name = "Heater status", breaks = c("HeatedMean", "UnheatedMean"), labels = c("Heated", "Unheated")) +
-   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-p7 + plottheme + theme(legend.position = c(.1, .2))
- 
-#ggsave("flagged_UavgHavg_4h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_UavgHavg_4h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
-
-#6-hour averages
-heatstat.6hour.avg <- gather(mean.6hour.depthavg, key="Heatstat", value="temp_6hour", UnheatedMean:HeatedMean)
-
-p8 <- ggplot(heatstat.6hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_6hour, x = time_6hour, color = Heatstat)) +
-   geom_point(pch = 1, size = 0.5) +
-   ylab(expression("Temperature" ~ (degree * C))) +
-   xlab("Time") +
-   scale_color_discrete(name = "Heater status", breaks = c("HeatedMean", "UnheatedMean"), labels = c("Heated", "Unheated")) +
-   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-p8 + plottheme + theme(legend.position = c(.1, .2))
- 
-#ggsave("flagged_UavgHavg_6h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_UavgHavg_6h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+# #switch tempratures from wide to long format
+# heatstat.15min.avg <- gather(mean.15min.depthavg, key="Heatstat", value="temp_15min", UnheatedMean:HeatedMean)
+# 
+# UavgHavg <- ggplot(heatstat.15min.avg %>% filter(block %in% c(1,2,3,4)), aes(y = temp_15min, x = time_15min, color = Heatstat)) +
+#    geom_point(pch = 1, size = 0.5) +
+#    ylab(expression("Temperature" ~ (degree * C))) +
+#    xlab("Time") +
+#    scale_color_discrete(name = "Heater status", breaks = c("HeatedMean", "UnheatedMean"), labels = c("Heated", "Unheated")) +
+#    scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+#  
+#  UavgHavg + plottheme + theme(legend.position = c(.1, .2))
+# 
+# #ggsave("flagged_UavgHavg_15min_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+# ggsave("flagged_UavgHavg_15min_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 ```
 
-####Plot 3: Temperature in heated and unheated plots within each block at each depth.  You can see that heating effects vary widely among different blocks and depths. 
+####Temperature in heated and unheated plots within each block at each depth.  You can see that heating effects vary widely among different blocks and depths. 
 ```{r}
-#15-min averages
-chambers <- mean.15min 
-
-mean.15min$time_15min <- as.POSIXct(mean.15min$time_15min)
-
-for(i in 1:length(unique(chambers$block))){
-  plot <- unique(chambers$block)[i]
-  
-  p9 <- ggplot(mean.15min %>% filter(block == plot), aes(y = temp, x = time_15min, color = heatStat)) +
-  geom_point(pch = 1, size = 0.5) +
-  facet_grid(depth~.) +
-  ylab(expression("Temperature" ~ (degree * C))) +
-  ggtitle(paste("Block", plot)) +
-  xlab("Time") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
-  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
-  
-print(p9 + plottheme)
-
-#ggsave(file = paste("flagged_", plot, "_15min_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_15min_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
-
-}
-
-#1-hour averages
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
 chambers <- mean.hour 
 
 mean.hour$time_hour <- as.POSIXct(mean.hour$time_hour)
@@ -268,7 +198,7 @@ mean.hour$time_hour <- as.POSIXct(mean.hour$time_hour)
 for(i in 1:length(unique(chambers$block))){
   plot <- unique(chambers$block)[i]
   
-  p10 <- ggplot(mean.hour %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
+  tempdepth <- ggplot(mean.hour %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
   geom_point(pch = 1, size = 0.5) +
   facet_grid(depth~.) +
   ylab(expression("Temperature" ~ (degree * C))) +
@@ -277,66 +207,42 @@ for(i in 1:length(unique(chambers$block))){
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
   scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
   
-print(p10 + plottheme)
+print(tempdepth + plottheme)
 
 #ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
 ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
-#4-hour averages
-chambers <- mean.6hour 
-
-mean.4hour$time_4hour <- as.POSIXct(mean.4hour$time_4hour)
-
-for(i in 1:length(unique(chambers$block))){
-  plot <- unique(chambers$block)[i]
-  
-  p11 <- ggplot(mean.4hour %>% filter(block == plot), aes(y = temp, x = time_4hour, color = heatStat)) +
-  geom_point(pch = 1, size = 0.5) +
-  facet_grid(depth~.) +
-  ylab(expression("Temperature" ~ (degree * C))) +
-  ggtitle(paste("Block", plot)) +
-  xlab("Time") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
-  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
-  
-print(p11 + plottheme)
-
-#ggsave(file = paste("flagged_", plot, "_4h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_4h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
-
-}
-
-#6-hour averages
-chambers <- mean.6hour 
-
-mean.6hour$time_6hour <- as.POSIXct(mean.6hour$time_6hour)
-
-for(i in 1:length(unique(chambers$block))){
-  plot <- unique(chambers$block)[i]
-  
-  p12 <- ggplot(mean.6hour %>% filter(block == plot), aes(y = temp, x = time_6hour, color = heatStat)) +
-  geom_point(pch = 1, size = 0.5) +
-  facet_grid(depth~.) +
-  ylab(expression("Temperature" ~ (degree * C))) +
-  ggtitle(paste("Block", plot)) +
-  xlab("Time") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
-  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
-  
-print(p12 + plottheme)
-
-#ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
-
-}
-
+# #6-hour averages
+# chambers <- mean.6hour 
+# 
+# mean.6hour$time_6hour <- as.POSIXct(mean.6hour$time_6hour)
+# 
+# for(i in 1:length(unique(chambers$block))){
+#   plot <- unique(chambers$block)[i]
+#   
+#   tempdepth <- ggplot(mean.6hour %>% filter(block == plot), aes(y = temp, x = time_6hour, color = heatStat)) +
+#   geom_point(pch = 1, size = 0.5) +
+#   facet_grid(depth~.) +
+#   ylab(expression("Temperature" ~ (degree * C))) +
+#   ggtitle(paste("Block", plot)) +
+#   xlab("Time") +
+#   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
+#   scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
+#   
+# print(tempdepth + plottheme)
+# 
+# #ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+# ggsave(file = paste("flagged_", plot, "_6h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
+# 
+# }
 ```
 
-####Plot 5: Temperature for each probe (dist x depth) in heated and unheated blocks
+####Temperature for each probe (dist x depth) in heated and unheated blocks
 ```{r}
-#Averaged hourly
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
+
 mean.hour.probe <- mean.hour.probe %>% mutate(probe = paste(type, dist, .sep = " "))
 
 chambers <- mean.hour.probe 
@@ -344,7 +250,7 @@ chambers <- mean.hour.probe
 for(i in 1:length(unique(chambers$block))){
   plot <- unique(chambers$block)[i]
   
-  p5 <- ggplot(mean.hour.probe %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
+  probe <- ggplot(mean.hour.probe %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
   geom_point(pch = 1, size = 0.5) +
   facet_grid(depth ~ probe) +
   ylab(expression("Temperature" ~ (degree * C))) +
@@ -353,46 +259,48 @@ for(i in 1:length(unique(chambers$block))){
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
   scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
   
-print(p5 + plottheme)
+print(probe + plottheme)
 
 #ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
 ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
 
-#Averaged every 15 minutes
-mean.15min.probe <- mean.15min.probe %>% mutate(probe = paste(type, dist, .sep = " "))
-
-chambers <- mean.15min.probe 
-
-for(i in 1:length(unique(chambers$block))){
-  plot <- unique(chambers$block)[i]
-  
-  p5 <- ggplot(mean.15min.probe %>% filter(block == plot), aes(y = temp, x = time_15min, color = heatStat)) +
-  geom_point(pch = 1, size = 0.5) +
-  facet_grid(depth ~ probe) +
-  ylab(expression("Temperature" ~ (degree * C))) +
-  ggtitle(paste("Block", plot)) +
-  xlab("Time") +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
-  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
-  
-print(p5 + plottheme)
-
-#ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
-
-}
+# #Averaged every 15 minutes
+# mean.15min.probe <- mean.15min.probe %>% mutate(probe = paste(type, dist, .sep = " "))
+# 
+# chambers <- mean.15min.probe 
+# 
+# for(i in 1:length(unique(chambers$block))){
+#   plot <- unique(chambers$block)[i]
+#   
+#   p5 <- ggplot(mean.15min.probe %>% filter(block == plot), aes(y = temp, x = time_15min, color = heatStat)) +
+#   geom_point(pch = 1, size = 0.5) +
+#   facet_grid(depth ~ probe) +
+#   ylab(expression("Temperature" ~ (degree * C))) +
+#   ggtitle(paste("Block", plot)) +
+#   xlab("Time") +
+#   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
+#   scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
+#   
+# print(p5 + plottheme)
+# 
+# #ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+# ggsave(file = paste("flagged_", plot, "_15min_probe_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+# 
+# }
 ```
 
 ####Plot temperature at each distance and depth, separately for each block
 ```{r}
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
+
 chambers <- mean.hour.dist 
 
 for(i in 1:length(unique(chambers$block))){
   plot <- unique(chambers$block)[i]
   
-  p5 <- ggplot(mean.hour.dist %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
+  dist <- ggplot(mean.hour.dist %>% filter(block == plot), aes(y = temp, x = time_hour, color = heatStat)) +
   geom_point(pch = 1, size = 0.5) +
   facet_grid(depth ~ dist) +
   ylab(expression("Temperature" ~ (degree * C))) +
@@ -401,10 +309,32 @@ for(i in 1:length(unique(chambers$block))){
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
   scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
   
-print(p5 + plottheme)
+print(dist + plottheme)
 
 #ggsave(file = paste("flagged_", plot, "_hour_dist_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
 ggsave(file = paste("flagged_", plot, "_1h_dist_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
+```
+
+###Average heating effect (H-U) across blocks, only when heaters are on.
+####Plot depths of 10, 20, 35, and 50
+```{r}
+depths <- ggplot(mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
+  geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour <= "2015-09-06" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
+  geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour >= "2015-10-01" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
+  geom_point(pch = 16, size = 2, alpha = 0.8, aes(color = as.factor(depth))) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Date") +
+  scale_color_brewer(name = "Depth (cm)", palette = "YlGnBu") +
+  scale_fill_brewer(name = "Depth (cm)", palette = "YlGnBu") 
+  #annotate("rect", fill = as.factor(depth), alpha = 0.5, xmin = time_hour, xmax = time_hour + 1, ymin = mean.TempDiff - se, ymax = mean.TempDiff + se)  
+
+
+depths + plottheme
+
+#ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2016_2.png", path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+
 ```
