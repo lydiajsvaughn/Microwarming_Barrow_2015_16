@@ -55,8 +55,11 @@ mean.hour.dist <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.dist_201
 #temperatures averaged for each distance from the plot center, every hour, outliers omitted
 mean.hour.blockavg <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016_2.csv', stringsAsFactors=F) 
 
+#heater effect for each block x depth, outliers omitted
+mean.hour.tdiff <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016_2.csv", stringsAsFactors = F) 
+
 #heater status changes
-heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016", stringsAsFactors = F)
+heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016.csv", stringsAsFactors = F)
 
 #change for 2015 vs. 2016 data
 ```
@@ -101,8 +104,8 @@ tempdiff <- ggplot(mean.hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=T
 
 tempdiff + plottheme + theme(legend.position = c(.05, .2)) 
 
-#ggsave("flagged_TempDiff_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #4-hour averages
 # tempdiff <- ggplot(mean.4hour.depthavg %>% filter(block %in% c(1,2,3,4)), aes(y=TempDiff, x=time_4hour, color=as.factor(as.character(block)))) +
@@ -134,8 +137,8 @@ tempdiff.mean <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"), aes(y
 
 tempdiff.mean + plottheme + theme(legend.position = c(.05, .2)) 
 
-#ggsave("flagged_TempDiff_mean_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_mean_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_mean_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_mean_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 #Different coloring
 tempdiff.mean.color <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
@@ -147,8 +150,40 @@ tempdiff.mean.color <- ggplot(mean.hour.depthavg %>% filter(block != "unknown"),
 
 tempdiff.mean.color + plottheme + theme(legend.position = c(.05, .2)) 
 
-#ggsave("flagged_TempDiff_mean_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_TempDiff_mean_color_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+ggsave("flagged_TempDiff_mean_color_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_mean_color_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+```
+
+####Overlay TempDiff plot with the mean temperature difference when heaters are on, this time omitting 5 and 50 cm from the depth averages
+```{r}
+#1-hour averages.  Change as needed for 15-min, 4-h, or 6-h averages
+
+mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% mutate(data.type = ifelse(block == "all", "mean", "trace"))
+
+tempdiff.mean.lim <- ggplot(mean.hour.depthavg.lim %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(data.type)))) +
+  geom_point(pch=16, alpha = 0.8, size = 2) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_color_manual(name="data type", values = c("gray0", "gray77")) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+tempdiff.mean.lim + plottheme + theme(legend.position = c(.05, .2)) 
+
+ggsave("flagged_TempDiff_mean_lim_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_mean_lim_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+
+#Different coloring
+tempdiff.mean.color.lim <- ggplot(mean.hour.depthavg.lim %>% filter(block != "unknown"), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
+  geom_point(pch=16, alpha = 0.8, size = 2) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_color_manual(name="block", values = c("slategray1", "lavender", "darkseagreen1", "lemonchiffon1", "black")) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+tempdiff.mean.color.lim + plottheme + theme(legend.position = c(.05, .2)) 
+
+ggsave("flagged_TempDiff_mean_color_lim_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_TempDiff_mean_color_lim_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 ```
 
 ####Depth-averaged temperature in heated and unheated blocks, all blocks on one set of axes
@@ -167,8 +202,8 @@ UavgHavg <- ggplot(heatstat.hour.avg %>% filter(block %in% c(1,2,3,4)), aes(y = 
 
 UavgHavg + plottheme + theme(legend.position = c(.1, .2))
  
-#ggsave("flagged_UavgHavg_1h_2016_5.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
-ggsave("flagged_UavgHavg_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
+ggsave("flagged_UavgHavg_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 14, height = 7, dpi = 300)
+#ggsave("flagged_UavgHavg_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 14, height = 7, dpi = 300)
 
 # #15-min averages
 
@@ -209,8 +244,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(tempdepth + plottheme)
 
-#ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_5.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2016_6.png", sep=""), path="plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_1h_tempdepth_2015.png", sep=""), path="plots/outliers_omitted/2015", width = 8.5, height = 11, dpi = 300)
 
 }
 
@@ -261,8 +296,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(probe + plottheme)
 
-#ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2016_6.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_1h_probe_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
 
@@ -311,8 +346,8 @@ for(i in 1:length(unique(chambers$block))){
   
 print(dist + plottheme)
 
-#ggsave(file = paste("flagged_", plot, "_hour_dist_tempdepth_2016_4.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
-ggsave(file = paste("flagged_", plot, "_1h_dist_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+ggsave(file = paste("flagged_", plot, "_hour_dist_tempdepth_2016_6.png", sep=""), path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+#ggsave(file = paste("flagged_", plot, "_1h_dist_tempdepth_2015_2.png", sep=""), path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
 
 }
 ```
@@ -321,8 +356,9 @@ ggsave(file = paste("flagged_", plot, "_1h_dist_tempdepth_2015_2.png", sep=""), 
 ####Plot depths of 10, 20, 35, and 50
 ```{r}
 depths <- ggplot(mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
-  geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour <= "2015-09-06" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
-  geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour >= "2015-10-01" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
+  #geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour <= "2015-09-06" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
+  #geom_ribbon(data = mean.hour.blockavg %>% filter(time_hour >= "2015-10-01" & depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
+  geom_ribbon(data = mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.2) +
   geom_point(pch = 16, size = 2, alpha = 0.8, aes(color = as.factor(depth))) +
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
   ylab(expression("Heated minus control"~(degree*C))) +
@@ -334,7 +370,68 @@ depths <- ggplot(mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), ae
 
 depths + plottheme
 
-#ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2016_2.png", path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
-ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+#ggsave(file = "flagged_TempDiff_blockmean_depths_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+
+```
+
+###Heating effect (H-U) by depth for each block, only when heaters are on.
+####Plot depths of 10, 20, 35, and 50
+```{r}
+block.depths <- ggplot(mean.hour.tdiff %>% filter(depth %in% c(5, 10, 20, 35, 50), block != "unknown", heater %in% c("ON", "ON*")), aes(x = time_hour, y = TempDiff)) +
+  geom_hline(yintercept = 4, color = "red") +
+  geom_point(pch = 16, size = 1, alpha = 0.8) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="7 days") +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Date") +
+  facet_grid(depth ~ block) 
+  #scale_color_brewer(name = "Depth (cm)", palette = "YlGnBu") +
+  #scale_fill_brewer(name = "Depth (cm)", palette = "YlGnBu") 
+  #annotate("rect", fill = as.factor(depth), alpha = 0.5, xmin = time_hour, xmax = time_hour + 1, ymin = mean.TempDiff - se, ymax = mean.TempDiff + se)  
+
+
+block.depths + plottheme
+
+ggsave(file = "flagged_TempDiff_depths_1h_2016_6.png", path="plots/outliers_omitted/2016", width = 16, height = 11, dpi = 300)
+#ggsave(file = "flagged_TempDiff_depths_1h_2015_2.png", path="plots/outliers_omitted/2015", width = 16, height = 11, dpi = 300)
+
+```
+
+####Detail plot of block 2 from June 10-July 10, 2016
+```{r}
+mean.15min <- mean.15min %>% mutate(time_15min = as.POSIXct(time_15min))
+
+detail.2.2016 <- ggplot(mean.15min %>% filter(block == 2 & time_15min >= "2016-06-10" & time_15min <= "2016-07-10" & depth %in% c(5, 10, 20, 50)), aes(y = temp, x = time_15min, color = heatStat)) +
+  geom_hline(yintercept = 0, color = "gray") +
+  geom_point(pch = 1, size = 0.5) +
+  facet_grid(depth~.) +
+  ylab(expression("Temperature" ~ (degree * C))) +
+  xlab("Time") +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
+  scale_color_discrete(name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) +
+  ggtitle("Block 2, 2016")
+  
+detail.2.2016 + plottheme
+
+
+ggsave(file = "flagged_15min_p2detail.png", path = "plots/outliers_omitted/2016", width = 8.5, height = 11, dpi = 300)
+```
+
+####Plot the heating effect for each block x depth at 8 cm surrounded by a ribbon for the range over the probe distances  
+```{r}
+#2015 data:
+
+rangeplot <- ggplot(ranges %>% filter(time_hour > "2015-08-01"), aes(y = TempDiff.8cm, x = time_hour)) +
+  geom_hline(yintercept = 4, color = "darkgray") +
+  geom_ribbon(data = ranges %>% filter(time_hour > "2015-08-01"), aes(ymin = min.Tdiff, ymax= max.Tdiff), alpha=0.2) +
+  geom_point(pch = 1, size = 0.5) +
+  facet_grid(depth~block) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+rangeplot + plottheme
+
+ggsave(file = "flagged_rangeplot_2015.png", path = "plots/outliers_omitted/2015", width = 10, height = 6, dpi = 300)
 
 ```
