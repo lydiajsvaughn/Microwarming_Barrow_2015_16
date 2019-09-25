@@ -519,6 +519,10 @@ mean.hour.depthavg$block <- as.character(mean.hour.depthavg$block)
 
 mean.hour.depthavg <- mean.hour.depthavg %>% full_join(mean.hour.depthavg %>% filter(heater %in% c("ON", "ON*")) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff)) %>% mutate(heater = "ON", block = "all"))
 
+#1-hour average without the 50 cm and 5 cm depths
+mean.hour.depthavg.lim <- mean.hour %>% filter(depth != 25, depth != 15, depth != 5, depth != 50, depths == 5, heatStat == "U") %>% group_by(date, heater, block, time_hour) %>% summarize(UnheatedMean = mean(temp)) %>% left_join(mean.hour %>% filter(depth != 25, depth != 15, depth != 50, depth != 5, depths == 5, heatStat == "H") %>% group_by(date, heater, block, time_hour) %>% summarize(HeatedMean = mean(temp))) %>% mutate(TempDiff = HeatedMean - UnheatedMean)
+
+mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% full_join(mean.hour.depthavg.lim %>% filter(heater %in% c("ON", "ON*")) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff)) %>% mutate(heater = "ON", block = "all"))
 
 #4-hour average
 mean.4hour <-mean.4hour %>% full_join(mean.4hour %>% filter(depth != 25, depth != 15) %>% group_by(time_4hour, block, heatStat) %>% summarize(depths = length(depth))) 
@@ -545,6 +549,8 @@ mean.6hour.depthavg <- mean.6hour.depthavg %>% full_join(mean.6hour.depthavg %>%
 write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_6.csv") 
 
 write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_6.csv") 
+
+write.csv(mean.hour.depthavg.lim, file = "data/2015_organized/flaggedBarrowFile.1hour.avg.lim_2016_6.csv") 
 
 write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_6.csv") 
 
@@ -574,4 +580,20 @@ write.csv(mean.hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.1hou
 write.csv(mean.4hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.4hour.blocks_2016_6.csv") 
 
 write.csv(mean.6hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.6hour.blocks_2016_6.csv") 
+```
+
+####Calculate the heating effect for each block, for each depth
+```{r}
+#1-hour averages
+mean.hour.tdiff <- mean.hour %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U)
+
+write.csv(mean.hour.tdiff, file = "data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016_2.csv") 
+```
+
+####Compute the range in temperatures across the 3 distances, calculated separately for each depth and block
+####Limit to instances where all 3 distances are measured (only 5, 10, and 20 cm depth)
+```{r}
+ranges <- mean.hour.dist %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(!is.na(TempDiff)) %>% group_by(heater, block, time_hour, depth) %>% summarize(min.Tdiff = min(range(TempDiff)), max.Tdiff = max(range(TempDiff)), n = length(TempDiff)) %>% filter(n == 3) %>% left_join(mean.hour.dist %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(dist == 8) %>% select(heater, block, time_hour, depth, TempDiff) %>% rename("TempDiff.8cm" = "TempDiff"))
+
+write.csv(ranges, file = "data/2016_organized/flaggedBarrowFile.1hour.range_2016_6.csv")
 ```
