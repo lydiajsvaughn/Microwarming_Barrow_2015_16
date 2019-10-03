@@ -192,6 +192,17 @@ long <- long %>% mutate(flag = ifelse(date > "2016-01-01" & block == "1" & type 
 
 #flag all measurements that are wildly too high or too low
 long <- long %>% mutate(flag = if_else(value >= 20 & is.na(flag), "outlier", if_else(value <= -5 & is.na(flag), "outlier", flag)))
+
+#additional bad traces or heater ramp-up periods detected during data cleaning
+
+#flag the ramp-up period in block 4 following a heater outage.  (This should not be included in across-block averages of the heater effect)
+long <- long %>% mutate(flag = if_else(block == 4 & date >= "2016-06-07" & date <= "2016-06-10", "ramp-up", flag))
+
+#flag the ramp-up period in block 1 following the heater outage that ended on July 21.
+long <- long %>% mutate(flag = if_else(block == 1 & date == "2016-07-22", "ramp-up", flag))
+
+#flag the heater outage overnight on June 8/9
+long <- long %>% mutate(flag = if_else(block == 1 & date == "2016-06-08", "ramp-up", flag))
 ```
 
 ####Data were recorded at 30-second intervals until mid-June, then at 5-minute intervals for the rest of the season.  Break the dataset into 30-second and 5-minute groups.
@@ -218,7 +229,7 @@ late4 <- long %>% filter(block == 4, type == "Ctl", time >= first(decoder %>% fi
 
 late.all <- rbind(late1, late2, late3, late4) %>% filter(!is.na(time))
 
-rm(late1, late2, late3, late4) %>% filter(!is.na(time))
+rm(late1, late2, late3, late4)
 
 rm(long) #do this only if needed to clear up memory
 ```
@@ -249,7 +260,7 @@ for(i in 1:length(combinations$block)) {
   RM <- combinations$regStat[i]
   distance <- combinations$dist[i]
   
-  early <- early.all %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, is.na(flag)) #isolate a given trace, minus values that were already flagged as bad data
+  early <- early.all %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance) %>% filter(is.na(flag) | flag == "ramp-up")  #isolate a given trace, minus values that were already flagged as bad data (all flags except "ramp-up")
 
 #To define a 1-hour rolling window, gap-fill missing values in the dataset with NA rows every 30 seconds.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
 
@@ -286,7 +297,7 @@ flagged.early <- flagged.early %>% mutate(flag = if_else(diff == 0.0000, "outlie
 flagged.early <- flagged.early %>% filter(!is.na(value))
 
 #add back in rows that were previously flagged
-flagged.early <- early.all %>% filter(!is.na(flag)) %>% full_join(flagged.early)
+flagged.early <- early.all %>% filter(!is.na(flag), flag != "ramp-up") %>% full_join(flagged.early)
 ```
 
 ####Flag outliers on all time series recorded at 5 minute intervals
@@ -302,7 +313,7 @@ for(i in 1:length(combinations$block)) {
   RM <- combinations$regStat[i]
   distance <- combinations$dist[i]
   
-  late <- late.all %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance, is.na(flag)) #isolate a given trace, minus values that were already flagged as bad data
+  late <- late.all %>% filter(block == plot, depth == cm, type == MC, heatStat == HU, regStat == RM, dist == distance) %>% filter(is.na(flag) | flag == "ramp-up")  #isolate a given trace, minus values that were already flagged as bad data (all flags except "ramp-up")
 
 
 #In order to select a 4-hour rolling window, gap-fill the dataset so that is a row for every 5-minute time interval.  This deals with the issue of missing values in the dataset by adding NA rows for these missing values, with an appropriate time stamp.  This method is more efficient than searching for a date range with myrollapply (as in myrollapply.2). 
@@ -348,7 +359,7 @@ flagged.late <- flagged.late %>% mutate(flag = if_else(diff == 0.0000, "outlier"
 flagged.late <- flagged.late %>% filter(!is.na(value))
 
 #add back in rows that were previously flagged
-flagged.late <- late.all %>% filter(!is.na(flag)) %>% full_join(flagged.late)
+flagged.late <- late.all %>% filter(!is.na(flag), flag != "ramp-up") %>% full_join(flagged.late)
 
 flagged <- flagged.late %>% bind_rows(flagged.early)
 
@@ -363,9 +374,9 @@ write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_6.csv")
 
 ####Optional: read in flagged file and format time variable
 ```{r}
-# flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_6.csv', stringsAsFactors=F) 
-# 
-# flagged$time <- as.POSIXct(flagged$time)
+flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_6.csv', stringsAsFactors=F)
+
+flagged$time <- as.POSIXct(flagged$time)
 ```
 
 ####To visualize outliers
@@ -477,7 +488,7 @@ write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_6.
 write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_6")
 
 #temperatures averaged for each distance from the plot center, every 1-hour interval, outliers omitted
-write.csv(mean.hour.dist, file = "data/2016_organized/flaggedBarrowFile.hour.dist_2016_2")
+write.csv(mean.hour.dist, file = "data/2016_organized/flaggedBarrowFile.1hour.dist_2016_2")
 
 #temperatures averaged for each plot and depth for every 4-hour interval, outliers omitted
 write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_6.csv") 
@@ -550,7 +561,7 @@ write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15m
 
 write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_6.csv") 
 
-write.csv(mean.hour.depthavg.lim, file = "data/2015_organized/flaggedBarrowFile.1hour.avg.lim_2016_6.csv") 
+write.csv(mean.hour.depthavg.lim, file = "data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016_6.csv") 
 
 write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_6.csv") 
 
