@@ -294,8 +294,8 @@ flagged <- flagged %>% bind_rows(long %>% filter(!is.na(flag), flag != "ramp-up"
 
 Save flagged and long dataframes (the original dataset plus outlier flags)
 ```{r}
-write.csv(flagged, file = "data/2015_organized/flaggedBarrowFile_2015_2.csv") 
-write.csv(long, file = "data/2015_organized/long_alldata_2015_2.csv") 
+write.csv(flagged, file = "data/2015_organized/flaggedBarrowFile_2015_3.csv") 
+write.csv(long, file = "data/2015_organized/long_alldata_2015_3.csv") 
 
 ```
 
@@ -306,26 +306,26 @@ write.csv(long, file = "data/2015_organized/long_alldata_2015_2.csv")
 #flagged$time <- as.POSIXct(flagged$time)
 ```
 
-####To visualize outliers
+####Optional: to visualize outliers
 ```{r}
-plottheme <- theme_bw() + 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank()) +
-  theme(axis.text.y = element_text(color="black", size=12)) +
-  theme(axis.text.x = element_text(color="black", size=12, angle=90, vjust=.5)) +
-  theme(axis.title.y = element_text(size=14)) +
-  theme(axis.title.x = element_blank()) +
-  theme(legend.position = c(.9, .85)) +
-  theme(legend.title = element_text(size=14)) +
-  theme(legend.text = element_text(size=12))
-
-#outliers <- flagged %>% filter(add criteria here)
-outliers <- flagged %>% filter(date < "2015-08-01", block == 2)
-
-outlierplot <- ggplot(outliers, aes(y = value, x = time)) +
-  geom_point(pch = 1, aes(color = flag, pch = heatStat)) +
-  ylab(expression("Temperature" ~ (degree * C))) +
-  xlab("Time")
-print(outlierplot + plottheme)
+# plottheme <- theme_bw() + 
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank()) +
+#   theme(axis.text.y = element_text(color="black", size=12)) +
+#   theme(axis.text.x = element_text(color="black", size=12, angle=90, vjust=.5)) +
+#   theme(axis.title.y = element_text(size=14)) +
+#   theme(axis.title.x = element_blank()) +
+#   theme(legend.position = c(.9, .85)) +
+#   theme(legend.title = element_text(size=14)) +
+#   theme(legend.text = element_text(size=12))
+# 
+# #outliers <- flagged %>% filter(add criteria here)
+# outliers <- flagged %>% filter(date < "2015-08-01", block == 2)
+# 
+# outlierplot <- ggplot(outliers, aes(y = value, x = time)) +
+#   geom_point(pch = 1, aes(color = flag, pch = heatStat)) +
+#   ylab(expression("Temperature" ~ (degree * C))) +
+#   xlab("Time")
+# print(outlierplot + plottheme)
 ```
 
 ####Average every 15 minutes. 
@@ -447,7 +447,7 @@ mean.15min.depthavg <- mean.15min %>% filter(depth != 25, depth != 15, depths ==
 
 mean.15min.depthavg$block <- as.character(mean.15min.depthavg$block)
 
-mean.15min.depthavg <- mean.15min.depthavg %>% full_join(mean.15min.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(n = length(time_hour)) %>% full_join(mean.15min.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
+mean.15min.depthavg <- mean.15min.depthavg %>% full_join(mean.15min.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_15min) %>% summarize(n = length(time_15min)) %>% full_join(mean.15min.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_15min) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
 
 #1-hour average
 mean.hour <-mean.hour %>% full_join(mean.hour %>% filter(depth != 25, depth != 15) %>% group_by(time_hour, block, heatStat, flag) %>% summarize(depths = length(depth))) 
@@ -470,7 +470,7 @@ mean.4hour.depthavg <- mean.4hour %>% filter(depth != 25, depth != 15, depths ==
 
 mean.4hour.depthavg$block <- as.character(mean.4hour.depthavg$block)
 
-mean.4hour.depthavg <- mean.4hour.depthavg %>% full_join(mean.4hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(n = length(time_hour)) %>% full_join(mean.4hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
+mean.4hour.depthavg <- mean.4hour.depthavg %>% full_join(mean.4hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_4hour) %>% summarize(n = length(time_4hour)) %>% full_join(mean.4hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_4hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
 
 #6-hour average
 mean.6hour <-mean.6hour %>% full_join(mean.6hour %>% filter(depth != 25, depth != 15) %>% group_by(time_6hour, block, heatStat, flag) %>% summarize(depths = length(depth))) 
@@ -479,7 +479,7 @@ mean.6hour.depthavg <- mean.6hour %>% filter(depth != 25, depth != 15, depths ==
 
 mean.6hour.depthavg$block <- as.character(mean.6hour.depthavg$block)
 
-mean.6hour.depthavg <- mean.6hour.depthavg %>% full_join(mean.6hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(n = length(time_hour)) %>% full_join(mean.6hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
+mean.6hour.depthavg <- mean.6hour.depthavg %>% full_join(mean.6hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_6hour) %>% summarize(n = length(time_6hour)) %>% full_join(mean.6hour.depthavg %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_6hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
 ```
 
 ####Save processed dataframes
