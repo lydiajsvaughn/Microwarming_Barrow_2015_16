@@ -1,0 +1,110 @@
+---
+title: "Flux temperature data merge"
+author: "Lydia Vaughn"
+date: "10/11/2019"
+output: html_document
+---
+
+#Description
+```
+This script reformats and combines cleaned temperature data with trace gas flux data.
+The data originate from an field soil warming experiment in Barrow, Alaska.
+
+```
+#Code
+
+##Install required packages
+
+These packages only need to be installed once, then this code can be commented out or deleted.
+
+Often, knitr does not like to install from the command window. If this is the case, look to the bottom right window and click on Packages -> Install -> and search for `knitr` in the window that opens.  
+
+Knitr will provide a row of buttons across the top of the top left window in RStudio which allow you to view this document in html format (by clicking on the "Knit HTML" button), as well as run some or all of the code chunks below (by clicking on the "Chunks" button)
+
+```{r}
+#uncomment to install packages from command line
+#install.packages("knitr")
+#install.packages("reshape")
+#install.packages("tidyverse")
+#install.packages("lubridate")
+```
+
+####Load packages
+```{r}
+library(tidyverse)
+library(lubridate)
+library(zoo)
+```
+
+####Read in flux data
+```{r}
+flux <- read.csv('data/flux.csv', stringsAsFactors=F) #Trace gas fluxes measured from microwarming experiment in 2015 and 2015
+```
+
+####2015 data: 
+Read in processed temperature data.  File was produced using the code Microwarming_data_formatting_2015, which cleaned data and assigned outlier flags.
+Filter temperature data to include only the dates for which flux data exist and compute 2-hour averages for those dates
+```{r}
+flagged.2015 <- read.csv('data/2015_organized/flaggedBarrowFile_2015_2.csv', stringsAsFactors=F) #Data following QA/QC, with column flagging outliers
+
+#flux <- flux %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d")) #uncomment if date formats cause trouble
+#flagged.2015 <- flagged.2015 %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d"))
+
+temp.2015 <- flagged.2015 %>% filter(date %in% unique(flux$date)) %>% mutate(treatment = if_else(heatStat == "H", "A", "C"), plot_ID = paste(block, treatment, sep = ""))
+
+rm(flagged.2015) #Remove 2015 temperature data from the environment to open up memory.  
+
+temp.2015 <- temp.2015 %>% mutate(time = as.POSIXct(time))
+```
+
+####2016 data: 
+Read in processed temperature data.  File was produced using the code Microwarming_data_formatting_2016, which cleaned data and assigned outlier flags.
+Filter temperature data to include only the dates for which flux data exist. 
+```{r}
+flagged.2016 <- read.csv('data/2016_organized/flaggedBarrowFile_2016_7.csv', stringsAsFactors=F) #Data following QA/QC, with column flagging outliers
+
+#flux <- flux %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d")) #uncomment if date formats cause trouble
+#flagged.2016 <- flagged.2016 %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d"))
+
+temp.2016 <- flagged.2016 %>% filter(date %in% unique(flux$date)) %>% mutate(treatment = if_else(heatStat == "H", "A", "C"), plot_ID = paste(block, treatment, sep = ""))
+
+rm(flagged.2016) #Remove 2016 temperature data from the environment to open up memory.  
+
+temp.2016 <- temp.2016 %>% mutate(time = as.POSIXct(time))
+```
+
+####For each flux measurement, calculate the corresponding mean temperatures for the 2-hour window leading up to that measurement time.  
+```{r}
+flux <- flux %>% mutate(time = paste(date, time, sep = " "), time = paste(time, ":00", sep = ""), time = as.POSIXct(time, format = "%Y-%m-%d %H:%M:%S"))
+
+flux.2015 <- flux %>% filter(time < "2016-01-01")
+flux.2016 <- flux %>% filter(time >= "2016-01-01")
+
+time.plot.2015 <- flux.2015 %>% distinct(plot_ID, time)
+
+meantemp.2015 <- temp.2015 %>% filter(is.na(flag) | flag == "ramp-up") %>% filter(plot_ID == time.plot.2015$plot_ID[1], time > time.plot.2015$time[1] - 7200, time <= time.plot.2015$time[1]) %>% group_by(heater, plot_ID, depth, flag) %>% summarize(temp_2h = mean(value)) %>% mutate(time = time.plot.2015$time[1]) %>% spread(key = depth, value = temp_2h) 
+
+for(i in 2:length(flux.2015$time)){
+  meantemp.2015 <- meantemp.2015 %>% rbind(temp.2015 %>% filter(is.na(flag) | flag == "ramp-up") %>% filter(plot_ID == time.plot.2015$plot_ID[i], time > time.plot.2015$time[i] - 7200, time <= time.plot.2015$time[i]) %>% group_by(heater, plot_ID, depth, flag) %>% summarize(temp_2h = mean(value)) %>% mutate(time = time.plot.2015$time[i]) %>% spread(key = depth, value = temp_2h))
+}
+  
+meantemp.2015 <- meantemp.2015 %>% rename("temp_5cm" = "5", "temp_10cm" = "10", "temp_15cm" = "15", "temp_20cm" = "20", "temp_25cm" = "25", "temp_35cm" = "35", "temp_50cm" = "50") 
+
+flux.2015 <- flux.2015 %>% left_join(meantemp.2015)
+
+time.plot.2016 <- flux.2016 %>% distinct(plot_ID, time)
+
+meantemp.2016 <- temp.2016 %>% filter(is.na(flag) | flag == "ramp-up") %>% filter(plot_ID == time.plot.2016$plot_ID[1], time > time.plot.2016$time[1] - 7200, time <= time.plot.2016$time[1]) %>% group_by(heater, plot_ID, depth, flag) %>% summarize(temp_2h = mean(value)) %>% mutate(time = time.plot.2016$time[1]) %>% spread(key = depth, value = temp_2h) 
+
+for(i in 2:length(flux.2016$time)){
+  meantemp.2016 <- meantemp.2016 %>% rbind(temp.2016 %>% filter(is.na(flag) | flag == "ramp-up") %>% filter(plot_ID == time.plot.2016$plot_ID[i], time > time.plot.2016$time[i] - 7200, time <= time.plot.2016$time[i]) %>% group_by(heater, plot_ID, depth, flag) %>% summarize(temp_2h = mean(value)) %>% mutate(time = time.plot.2016$time[i]) %>% spread(key = depth, value = temp_2h))
+}
+  
+meantemp.2016 <- meantemp.2016 %>% rename("temp_5cm" = "5", "temp_10cm" = "10", "temp_15cm" = "15", "temp_20cm" = "20", "temp_25cm" = "25", "temp_35cm" = "35", "temp_50cm" = "50") 
+
+flux.2016 <- flux.2016 %>% left_join(meantemp.2016)
+
+flux.temp <- bind_rows(flux.2015, flux.2016)
+
+write.csv(write.csv(flux.temp, file = "data/flux.temp.csv"))
+```
