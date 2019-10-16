@@ -104,7 +104,7 @@ meantemp.2016 <- meantemp.2016 %>% rename("temp_5cm" = "5", "temp_10cm" = "10", 
 
 flux.2016 <- flux.2016 %>% left_join(meantemp.2016)
 
-flux.temp <- bind_rows(flux.2015, flux.2016)
+flux.temp <- bind_rows(flux.2015, flux.2016) %>% mutate(temp_mean_10_20_35 = (temp_10cm + temp_20cm + temp_35cm) / 3)
 
 write.csv(write.csv(flux.temp, file = "data/flux.temp.csv"))
 ```
