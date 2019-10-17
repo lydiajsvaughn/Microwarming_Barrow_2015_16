@@ -45,7 +45,7 @@ flux <- read.csv('data/flux.csv', stringsAsFactors=F) #Trace gas fluxes measured
 Read in processed temperature data.  File was produced using the code Microwarming_data_formatting_2015, which cleaned data and assigned outlier flags.
 Filter temperature data to include only the dates for which flux data exist and compute 2-hour averages for those dates
 ```{r}
-flagged.2015 <- read.csv('data/2015_organized/flaggedBarrowFile_2015_2.csv', stringsAsFactors=F) #Data following QA/QC, with column flagging outliers
+flagged.2015 <- read.csv('data/2015_organized/flaggedBarrowFile_2015_4.csv', stringsAsFactors=F) #Data following QA/QC, with column flagging outliers
 
 #flux <- flux %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d")) #uncomment if date formats cause trouble
 #flagged.2015 <- flagged.2015 %>% mutate(date = as.POSIXct(date, format = "%Y-%m-%d"))
