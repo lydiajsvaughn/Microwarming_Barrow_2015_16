@@ -33,7 +33,7 @@ Knitr will provide a row of buttons across the top of the top left window in RSt
 ####Read in files
 ```{r}
 #complete 2016 dataset:
-long <- read.csv('data/2016_organized/longBarrowFile_2016_4.csv', stringsAsFactors=F) 
+long <- read.csv('data/2016_organized/longBarrowFile_2016.csv', stringsAsFactors=F) 
 
 decoder <- read.csv('data/control_box_decoder.csv', stringsAsFactors=F)
 
@@ -381,12 +381,12 @@ gc()
 
 Save flagged dataframe (the original dataset plus outlier flags)
 ```{r}
-write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016_7.csv") 
+write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016.csv") 
 ```
 
 ####Optional: read in flagged file and format time variable
 ```{r}
-#flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016_7.csv', stringsAsFactors=F)
+flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016.csv', stringsAsFactors=F)
 
 #flagged$time <- as.POSIXct(flagged$time)
 ```
@@ -485,40 +485,40 @@ mean.6hour.dist <- flagged %>% filter(is.na(flag) | flag == "ramp-up") %>% group
 ####Write to csv files
 ```{r}
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016_7.csv") 
+write.csv(mean.15min, file = "data/2016_organized/flaggedBarrowFile.15min_2016.csv") 
 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
-write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016_7")
+write.csv(mean.15min.probe, file = "data/2016_organized/flaggedBarrowFile.15min.probe_2016.csv")
 
 #temperatures averaged for each distance from the plot center, every 15-min interval, outliers omitted
-write.csv(mean.15min.dist, file = "data/2016_organized/flaggedBarrowFile.15min.dist_2016_7")
+write.csv(mean.15min.dist, file = "data/2016_organized/flaggedBarrowFile.15min.dist_2016.csv")
 
 #temperatures averaged for each plot and depth for every 1-hour interval, outliers omitted
-write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016_7.csv") 
+write.csv(mean.hour, file = "data/2016_organized/flaggedBarrowFile.1hour_2016.csv") 
 
 #temperatures averaged for each probe, every 1-hour interval, outliers omitted
-write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016_7")
+write.csv(mean.hour.probe, file = "data/2016_organized/flaggedBarrowFile.1hour.probe_2016.csv")
 
 #temperatures averaged for each distance from the plot center, every 1-hour interval, outliers omitted
-write.csv(mean.hour.dist, file = "data/2016_organized/flaggedBarrowFile.1hour.dist_2016_7")
+write.csv(mean.hour.dist, file = "data/2016_organized/flaggedBarrowFile.1hour.dist_2016.csv")
 
 #temperatures averaged for each plot and depth for every 4-hour interval, outliers omitted
-write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016_7.csv") 
+write.csv(mean.4hour, file = "data/2016_organized/flaggedBarrowFile.4hour_2016.csv") 
 
 #temperatures averaged for each probe, every 4-hour interval, outliers omitted
-write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016_7")
+write.csv(mean.4hour.probe, file = "data/2016_organized/flaggedBarrowFile.4hour.probe_2016.csv")
 
 #temperatures averaged for each distance from the plot center, every 4-hour interval, outliers omitted
-write.csv(mean.4hour.dist, file = "data/2016_organized/flaggedBarrowFile.4hour.dist_2016_7")
+write.csv(mean.4hour.dist, file = "data/2016_organized/flaggedBarrowFile.4hour.dist_2016.csv")
 
 #temperatures averaged for each plot and depth for every 6-hour interval, outliers omitted
-write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016_7.csv") 
+write.csv(mean.6hour, file = "data/2016_organized/flaggedBarrowFile.6hour_2016.csv") 
 
 #temperatures averaged for each probe, every 6-hour interval, outliers omitted
-write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016_7")
+write.csv(mean.6hour.probe, file = "data/2016_organized/flaggedBarrowFile.6hour.probe_2016.csv")
 
 #temperatures averaged for each distance from the plot center, every 6-hour interval, outliers omitted
-write.csv(mean.6hour.dist, file = "data/2016_organized/flaggedBarrowFile.6hour.dist_2016_7")
+write.csv(mean.6hour.dist, file = "data/2016_organized/flaggedBarrowFile.6hour.dist_2016.csv")
 ```
 
 ####Calculate the depth-averaged temperatures in each plot for each 15-minute, 1-hour, 4-hour, and 6-hour time period.  Also calculate the difference between the heated and unheated plot for each block.  Do not use depth == 25, since it is missing from most (but not all) data streams.  Also do not use depth == 15, because it is missing from a large chunk of block 1 and 2.    Use only complete cases (i.e., where data exist for all non-15cm and non-25cm depths).  
@@ -569,15 +569,15 @@ mean.6hour.depthavg <- mean.6hour.depthavg %>% full_join(mean.6hour.depthavg %>%
 ####Save processed dataframes
 ```{r}
 #temperatures averaged across all depths for every 15-minute interval, outliers ommitted
-write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016_7.csv") 
+write.csv(mean.15min.depthavg, file = "data/2016_organized/flaggedBarrowFile.15min.avg_2016.csv") 
 
-write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016_7.csv") 
+write.csv(mean.hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.1hour.avg_2016.csv") 
 
-write.csv(mean.hour.depthavg.lim, file = "data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016_7.csv") 
+write.csv(mean.hour.depthavg.lim, file = "data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
 
-write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016_7.csv") 
+write.csv(mean.4hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.4hour.avg_2016.csv") 
 
-write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6hour.avg_2016_7.csv") 
+write.csv(mean.6hour.depthavg, file = "data/2016_organized/flaggedBarrowFile.6hour.avg_2016.csv") 
 
 #voltageBarrow.15min_2016.csv (voltage averaged for each 15-min interval)
 ```
@@ -596,13 +596,13 @@ mean.6hour.blockavg <- mean.6hour %>% select(-depths) %>% filter(heater %in% c("
 ####Save processed dataframes
 ```{r}
 #temperatures averaged across all depths for every 15-minute interval, outliers ommitted
-write.csv(mean.15min.blockavg, file = "data/2016_organized/flaggedBarrowFile.15min.blocks_2016_7.csv") 
+write.csv(mean.15min.blockavg, file = "data/2016_organized/flaggedBarrowFile.15min.blocks_2016.csv") 
 
-write.csv(mean.hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.1hour.blocks_2016_7.csv") 
+write.csv(mean.hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.1hour.blocks_2016.csv") 
 
-write.csv(mean.4hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.4hour.blocks_2016_7.csv") 
+write.csv(mean.4hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.4hour.blocks_2016.csv") 
 
-write.csv(mean.6hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.6hour.blocks_2016_7.csv") 
+write.csv(mean.6hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.6hour.blocks_2016.csv") 
 ```
 
 ####Calculate the heating effect for each block, for each depth
@@ -610,7 +610,7 @@ write.csv(mean.6hour.blockavg, file = "data/2016_organized/flaggedBarrowFile.6ho
 #1-hour averages
 mean.hour.tdiff <- mean.hour %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U)
 
-write.csv(mean.hour.tdiff, file = "data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016_7.csv") 
+write.csv(mean.hour.tdiff, file = "data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016.csv") 
 ```
 
 ####Compute the range in temperatures across the 3 distances, calculated separately for each depth and block
@@ -618,5 +618,5 @@ write.csv(mean.hour.tdiff, file = "data/2016_organized/flaggedBarrowFile.1hour.T
 ```{r}
 ranges <- mean.hour.dist %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(!is.na(TempDiff)) %>% group_by(heater, block, time_hour, depth, flag) %>% summarize(min.Tdiff = min(range(TempDiff)), max.Tdiff = max(range(TempDiff)), n_6.8.10 = length(TempDiff)) %>% right_join(mean.hour.dist %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(!is.na(TempDiff), dist != 8) %>% group_by(heater, block, time_hour, depth, flag) %>% summarize(n_6.10 = length(TempDiff)) %>% filter(n_6.10 == 2)) %>% left_join(mean.hour.dist %>% spread(key = heatStat, value = temp) %>% mutate(TempDiff = H - U) %>% filter(dist == 8) %>% select(heater, block, time_hour, depth, TempDiff) %>% rename("TempDiff.8cm" = "TempDiff"))
 
-write.csv(ranges, file = "data/2016_organized/flaggedBarrowFile.1hour.range_2016_7.csv")
+write.csv(ranges, file = "data/2016_organized/flaggedBarrowFile.1hour.range_2016.csv")
 ```
