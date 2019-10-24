@@ -1,0 +1,432 @@
+---
+title: "Barrow Data"
+author: "rza"
+date: "July 25, 2015"
+output: html_document
+---
+#Description
+```
+This script was written to read in data that was originally downloaded using a telnet protocol and saved as .dat files.
+Data files are accumulated in two folders, one for each circuit board.
+The data originate from an experimental soil warming experiment in Barrow, Alaska.
+```
+#Code
+
+##Install required packages
+
+These packages only need to be installed once, then this code can be commented out or deleted.
+Often, knitr does not like to install from the command window. If this is the case, look to the bottom right window and click on Packages -> Install -> and search for `knitr` in the window that opens.  
+
+Knitr will provide a row of buttons across the top of the top left window in RStudio which allow you to view this document in html format (by clicking on the "Knit HTML" button), as well as run some or all of the code chunks below (by clicking on the "Chunks" button)
+
+```{r}
+#ptm <- proc.time() #start timer
+#uncomment to install packages from command line
+#install.packages("knitr")
+#install.packages("reshape")
+```
+
+##Enter path
+```{r}
+##enter path to the two folders that contain data from each circuit board
+# path = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016telnetfiles/20161017/control" #control
+# path2 = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016telnetfiles/20161017/monitor" #monitor
+
+# path = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016telnetfiles/combined/control" #control
+# path2 = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016telnetfiles/combined/monitor" #monitor
+
+path = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2015telnetfiles/control" #control, extra early 2015 files from Margaret
+path2 = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2015telnetfiles/monitor" #monitor, extra early 2015 files from Margaret
+
+#path = "/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/20161017_control"
+#path2 = "/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/20161017_monitor"
+```
+
+##Read in files, cut non-data rows, and parse
+```{r, warning = FALSE}
+  readMerge <- function(path) {
+        files <- list.files(path, full.names=TRUE) #list files in folder
+        
+          for(i in 1: length(files)) {
+            data <- read.table(files[i], header = FALSE, sep="\t", quote = "") #load files
+            cols <- as.character(data[,1]) #default data type is factor, change to character (i.e., string) to manipulate in next line
+            data <- as.data.frame(data[grep("^<\\|.*\\|>$", cols),]) #select only rows that satisfy the condition: "<|" at SOL & "|>" at EOL
+            # if the merged dataset does exist, append to it
+            if (exists("dataset")){
+              temp_dataset <- data
+              dataset<-rbind(dataset, temp_dataset)
+              rm(temp_dataset)  
+            }
+            # if the merged dataset doesn't exist, create it
+            if (!exists("dataset")){
+              dataset <- data
+            }
+          }
+ 
+        #remove whitespace from data strings
+        whitespace <- function(x) {
+          ch <- gsub(" ", "", x)
+        }
+        ch <- lapply(dataset, whitespace)
+        
+        ##split strings at | to assign columns
+        newdata <- data.frame(matrix(0, nrow = nrow(dataset) , ncol = as.numeric(37))) #create empty matrix
+        parsefx <- function(ch) {
+          x <- strsplit(ch, "\\|")
+          newdata <- do.call(rbind, lapply(x, `[`, c(1L:37L)))
+        }
+        newdata <- as.data.frame(lapply(ch, parsefx))
+    return(newdata)
+  }
+  
+  data <- readMerge(path)
+  data2 <- readMerge(path2)
+```
+
+##Enter column headers  
+
+There are two data sheets, one for each folder.  
+path -> data   
+path2 -> data2 
+
+```{r}
+  #headers for control board     
+   colnames(data) <- c("start", "date", "time", "id", "log", "BoardTemp", "U.R.8.5", "U.R.8.10", "U.R.8.15", "U.R.8.20", "U.R.8.25", "H.R.8.5", "H.R.8.10", "H.R.8.15", "H.R.8.20", "H.R.8.25", "H.M.6.5", "H.M.6.10", "H.M.6.20", "H.M.6.35", "H.M.6.50", "NotKnown1", "UAvg", "HAvg", "TempDiff", "HeaterSetting", "NotKnown2", "Voltage", "HeaterIntervalCount", "NotKnown3", "end")
+  #headers for monitoring board 
+       colnames(data2) <- c("start", "date", "time", "id", "log", "BoardTemp", "H.M.10.5", "H.M.10.10", "H.M.10.20", "H.M.10.35", "H.M.10.50", "U.M.6.5", "U.M.6.10", "U.M.6.20", "U.M.6.35", "U.M.6.50", "U.M.10.5", "U.M.10.10", "U.M.10.20", "U.M.10.35", "U.M.10.50", "NotKnown1", "UAvg", "HAvg", "TempDiff", "HeaterSetting", "NotKnown2", "Voltage", "HeaterIntervalCount", "NotKnown3", "end")
+```
+
+##Organize data in wide format
+
+There are two data files, one for each folder.  
+path -> wide  
+path2 -> wide2  
+
+```{r, warning = FALSE}
+  #redefine column types
+        redefCol <- function(data) {
+          convert.magic <- function(obj,types){
+            wide <- lapply(1:length(obj),FUN = function(i){FUN1 <- switch(types[i],character = as.character,numeric = as.numeric, factor = as.factor); FUN1(obj[,i])})
+            names(wide) <- colnames(obj)
+            as.data.frame(wide,stringsAsFactors = FALSE)
+          }
+          
+          widech <- convert.magic(data, c('character', 'factor', 'character', 'factor', 'factor', rep('character', 32)))
+          wide <- convert.magic(widech, c('character', 'factor', 'character', 'factor', 'factor', rep('numeric', 32)))
+          wide$date <- as.Date(wide$date, "%d-%m-%Y")
+          wide$time <- with(widech, as.POSIXct(paste(date,time), format= "%d-%m-%Y %H:%M:%S")) #time zone is still PDT (change time zone signature <- Alaska)
+          wide <- subset(wide, select = -c(start, end, NA., NA..1, NA..2, NA..3, NA..4, NA..5))
+          return(wide)
+        }
+        
+        wide <- redefCol(data)
+        wide2 <- redefCol(data2)
+```
+
+##Remove duplicate rows and QA/QC
+```{r}
+wide <- unique(wide)
+wide2 <- unique(wide2)
+
+#1) If the minimum temperature out of all the probes is more than 5C, cut those lines
+# cond <- min(c(wide$U.R.8.5,wide$U.R.8.15,wide$U.R.8.25,wide$H.R.8.5,wide$H.R.8.10,wide$H.R.8.15,wide$H.R.8.20,wide$H.R.8.25,wide$H.M.6.5,wide$H.M.6.10,wide$H.M.6.20,wide$H.M.6.35,wide$H.M.6.50)) > 5
+# cond2 <- min(c(wide2$H.M.10.5,wide2$H.M.10.10,wide2$H.M.10.20,wide2$H.M.10.35,wide2$H.M.10.50,wide2$U.M.6.5,wide2$U.M.6.10,wide2$U.M.6.20,wide2$U.M.6.35,wide2$U.M.6.50,wide2$U.M.10.5,wide2$U.M.10.10,wide2$U.M.10.20,wide2$U.M.10.35,wide2$U.M.10.50)) > 5
+# wide1 <- wide[cond,]
+# wide21 <- wide[cond2,]
+```
+
+##Melt to long format and concatenate into one data object
+
+The data object created by this chunk is called `long`.  
+Some helpful commands:  
+`head(long)` <- view first 6 lines  
+`str(long)` <- view the structure of the data object  
+`nrow(long)` <- query the number of rows in this data object  
+`summary(long)` <- view some automatically-generated summary data  
+`long[1,1]` <- to view the element in the row 1, column 1  
+`long[long$depth == 1,]` <- select all of the rows that meet the condition depth = 1  
+At any time you can assign one of these commands to a variable. For example, to create a new data object that contains only data where depth = 1  
+`newdata <- long[long$depth == 1,]`  
+Check the ranges of this variable to be sure:  
+`range(long$depth)`  
+`range(newdata$depth)`  
+
+```{r}
+  #change from wide data format to long   #add 1 for first folder
+  library(reshape)
+  long1 <- melt(wide, id = c("date", "time", "id", "log", "BoardTemp", "NotKnown1", "UAvg", "HAvg", "TempDiff", "HeaterSetting", "NotKnown2", "Voltage", "HeaterIntervalCount", "NotKnown3"))
+  long2 <- melt(wide2, id = c("date", "time", "id", "log", "BoardTemp", "NotKnown1", "UAvg", "HAvg", "TempDiff", "HeaterSetting", "NotKnown2", "Voltage", "HeaterIntervalCount", "NotKnown3"))
+  long <- rbind(long1, long2)
+  
+  #split header into three columns
+  test <- strsplit(as.character(long$variable), "\\.")
+  
+  long$heatStat <- unlist(lapply(test, '[[', 1)) #set header for heated or unheated status
+  long$regStat <- unlist(lapply(test, '[[', 2)) #set header for regulator (control) or monitor
+  long$dist <- unlist(lapply(test, '[[', 3)) #set header for distance to center
+  long$depth <- unlist(lapply(test, '[[', 4)) #set header for depth
+  long <- subset(long, select = -c(variable))
+  
+  long <- unique(long)
+```
+
+##Optional
+###Write data object to .csv or sort data
+```{r}
+  #uncomment to write data to a csv file, change path to desired destination
+  #subset<-long[seq(1,length(long$value),1000),]
+  #write.csv(subset, file = "/Users/rzabramoff/Desktop/myfile.csv") 
+  #write.csv(long, file = "/Users/rzabramoff/Desktop/longBarrowFile.csv") #change file path
+  write.csv(long, file = "data/2015_organized/longBarrowFile_2015_July.csv")
+  #write.csv(wide, file = "/Users/rzabramoff/Desktop/wideBarrowfileControl.csv")
+  #write.csv(wide2, file = "/Users/rzabramoff/Desktop/wideBarrowfileMonitor.csv")
+  wide$hour <- as.POSIXlt(wide$time)$hour
+  wide2$hour <- as.POSIXlt(wide2$time)$hour
+  long$hour <- as.POSIXlt(long$time)$hour
+  
+  write.csv(long, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/longBarrowFile_2016.csv") #change file path
+  write.csv(wide, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/wideBarrowfileControl_2016.csv")
+  write.csv(wide2, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/wideBarrowfileMonitor_2016.csv")
+  
+  #uncomment to sort data
+  #sorted1 <- long[order(long$value),] #sort by value
+  #sorted2 <- long[order(long$value, long$depth),] #sort by value and depth
+  #sorted3 <- long[order(long$value, rev(long$depth)),] #sort by value (ascending) and depth (descending)
+```
+
+##Optional
+##Read in full dataset if cleared workspace after processing
+```{r}
+   wide <- read.csv(file = "data/2016_organized/wideBarrowfileControl_2016.csv") #change file path
+   wide2 <- read.csv(file = "/Users/rzabramoff/Desktop/wideBarrowFileMonitor_2016.csv") 
+   long <- read.csv(file = "/Users/rzabramoff/Desktop/longBarrowFile_2016.csv")
+```
+
+##QA/QC full long dataset before average
+```{r}
+#Before this QA/QC, query the unique ids
+   unique(long$id)
+
+#Figure out which of these ids have normal temperature values by asking for the summary for each id (I just manually changed the id in quotations, picking out the alphanumeric answers to the above query) 
+   summary(long[long$id == "8F05",]) 
+   
+#Drop the row if:
+
+#1) If the value of id is not one of these 16 alphanumberic strings
+   long <- long[long$id == "D1EF" | long$id == "89A1" | long$id == "B7D1" |long$id == "7E4F" | long$id == "8F0A" | long$id =="11FD" | long$id =="FFF4" |  long$id =="FFFF" |  long$id =="380C" |  long$id =="97F4" |  long$id =="11FC" |  long$id =="7E00" |  long$id =="97F5" |  long$id =="97F0" |  long$id =="97F2"|  long$id =="97F6",]
+#2) If a temperature probe value is 0.000
+   long <- long[long$value != 0.000,]
+   ```
+
+##Optional
+###Average hourly
+```{r}
+    library(plyr)
+  
+  #all but time and log included
+  hwide <-  ddply(wide, .(date, hour, id), summarize, BoardTemp=mean(BoardTemp, na.rm=T), U.R.8.5=mean(U.R.8.5, na.rm=T), U.R.8.10=mean(U.R.8.10, na.rm=T), U.R.8.15=mean(U.R.8.15, na.rm=T), U.R.8.20=mean(U.R.8.20, na.rm=T), U.R.8.25=mean(U.R.8.25, na.rm=T), H.R.8.5=mean(H.R.8.5, na.rm=T), H.R.8.10=mean(H.R.8.10, na.rm=T), H.R.8.15=mean(H.R.8.15, na.rm=T), H.R.8.20=mean(H.R.8.20, na.rm=T), H.R.8.25=mean(H.R.8.25, na.rm=T), H.M.6.5=mean(H.M.6.5, na.rm=T), H.M.6.10=mean(H.M.6.10, na.rm=T), H.M.6.20=mean(H.M.6.20, na.rm=T), H.M.6.35=mean(H.M.6.35, na.rm=T), H.M.6.50=mean(H.M.6.50, na.rm=T), NotKnown1=mean(NotKnown1, na.rm=T), UAvg=mean(UAvg, na.rm=T), HAvg=mean(HAvg, na.rm=T), TempDiff=mean(TempDiff, na.rm=T), HeaterSetting=mean(HeaterSetting, na.rm=T), NotKnown2=mean(NotKnown2, na.rm=T), Voltage=mean(Voltage, na.rm=T), HeaterIntervalCount=mean(HeaterIntervalCount, na.rm=T), NotKnown3=mean(NotKnown3, na.rm=T))
+  
+ hwide2 <-  ddply(wide2, .(date, hour, id), summarize, BoardTemp=mean(BoardTemp, na.rm=T), H.M.10.5=mean(H.M.10.5, na.rm=T), H.M.10.10=mean(H.M.10.10, na.rm=T), H.M.10.20=mean(H.M.10.20, na.rm=T), H.M.10.35=mean(H.M.10.35, na.rm=T), H.M.10.50=mean(H.M.10.50, na.rm=T), U.M.6.5=mean(U.M.6.5, na.rm=T), U.M.6.10=mean(U.M.6.10, na.rm=T), U.M.6.20=mean(U.M.6.20, na.rm=T),U.M.6.35=mean(U.M.6.35, na.rm=T), U.M.6.50=mean(U.M.6.50, na.rm=T), U.M.10.5=mean(U.M.10.5, na.rm=T), U.M.10.10=mean(U.M.10.10, na.rm=T), U.M.10.20=mean(U.M.10.20, na.rm=T), U.M.10.35=mean(U.M.10.35, na.rm=T), U.M.10.50=mean(U.M.10.50, na.rm=T), NotKnown1=mean(NotKnown1, na.rm=T), UAvg=mean(UAvg, na.rm=T), HAvg=mean(HAvg, na.rm=T), TempDiff=mean(TempDiff, na.rm=T), HeaterSetting=mean(HeaterSetting, na.rm=T), NotKnown2=mean(NotKnown2, na.rm=T), Voltage=mean(Voltage, na.rm=T), HeaterIntervalCount=mean(HeaterIntervalCount, na.rm=T), NotKnown3=mean(NotKnown3, na.rm=T))
+  
+  #all but time and log are included
+  hlong <- ddply(long, .(date, hour, id, heatStat, regStat, dist, depth), summarize, BoardTemp=mean(BoardTemp, na.rm=T), NotKnown1=mean(NotKnown1, na.rm=T), UAvg=mean(UAvg, na.rm=T), HAvg=mean(HAvg, na.rm=T), TempDiff=mean(TempDiff, na.rm=T), HeaterSetting=mean(HeaterSetting, na.rm=T), NotKnown2=mean(NotKnown2, na.rm=T), Voltage=mean(Voltage, na.rm=T), HeaterIntervalCount=mean(HeaterIntervalCount, na.rm=T), NotKnown3=mean(NotKnown3, na.rm=T), value=mean(value, na.rm=T))
+  
+  #pull only complete cases
+  #hwide <- hwide[complete.cases(hwide),]
+  #hwide2 <- hwide2[complete.cases(hwide2),]
+  #hlong <- hlong[complete.cases(hlong),]
+  
+#    write.csv(hwide, file = "/Users/rzabramoff/Desktop/wideBarrowFileControlHourly.csv") #change file path
+#     write.csv(hwide2, file = "/Users/rzabramoff/Desktop/wideBarrowFileMonitorHourly.csv") 
+#      write.csv(hlong, file = "/Users/rzabramoff/Desktop/longBarrowFileHourly.csv")
+  
+    write.csv(hwide, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/wideBarrowFileControlHourly_2016.csv") #change file path
+     write.csv(hwide2, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/wideBarrowFileMonitorHourly_2016.csv") 
+      write.csv(hlong, file = "/Users/lydiajean/Documents/Academic/R_projects/Microwarming_Barrow/data/2016_organized/longBarrowFileHourly_2016.csv")
+     
+     #save(long, hwide2, file = "monitoronly.RData")
+```
+
+##Format Time and save data object to Rdata
+```{r}
+#need to turn date and hour back into time
+   long$fork <- paste(long$date, long$hour)
+    long$time <- as.POSIXct(strptime(as.factor(long$fork), "%Y-%m-%d %H"))
+    
+#let's go ahead and save 
+save(long, file = "/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/Barrow2016.RData" )
+```
+
+##Plots
+The code for these plots includes a lot of features that are not necessary now but may be useful, such as:  
+Spatial formatting of multiple plots (`par(mfrow)`)  
+Formatting for time axes (`axis.POSIXct`)  
+Legends
+Title (`main`)
+Point size (`cex`)  
+Point or line color (`col`)  
+Point type (`pch`)  
+Inserting symbols into axes (`expression`)  
+  
+Note in the third plot that I can impose multiple conditions at one time on the data that I plot:  
+Instead of `long$time`, which means select the time attribute of the data object `long`,  
+I can use `long[long$circuit == "H" & long$loc == 1 & long$depth == 1,]$time` to select the time attribute of the data object `long` ONLY if circuit = H AND location = 1 AND depth = 1.  
+  
+I can use other conditional arguments such as "|" for "or" and "!=" for "not".  
+
+##Read data in 
+```{r}
+long <- read.csv(file = "/Users/rzabramoff/Desktop/longBarrowFile_2016.csv")
+
+#need to turn date and hour back into time
+   long$fork <- paste(long$date, long$hour)
+    #long$time <- as.POSIXct(strptime(as.factor(long$fork), "%Y-%m-%d %H"))
+   long$time <- as.POSIXct(strptime(long$fork, "%m/%d/%y %H"))
+    
+long <- long[long$id == "D1EF" | long$id == "89A1" | long$id == "B7D1" |long$id == "7E4F" | long$id == "8F0A" | long$id =="11FD" | long$id =="FFF4" |  long$id =="FFFF" |  long$id =="380C" |  long$id =="97F4" |  long$id =="11FC" |  long$id =="7E00" |  long$id =="97F5" |  long$id =="97F0" |  long$id =="97F2"|  long$id =="97F6",]
+```
+
+####Specify Graph Color and Symbol size
+```{r}
+#using the colorblind brewer palette
+b3 <- "#E69F00" #rgb(166,206,227, maxColorValue = 255)
+b2 <- "#56B4E9" #rgb(31,120,180, maxColorValue = 255)
+b1 <- "#000000" #rgb(178,223,138, maxColorValue = 255)
+b4 <- "#0072B2"
+b5 <- "#CC79A7"
+b6 <- "#D55E00"
+b7 <- 2
+b8 <- 3
+b9 <- 4
+b10 <- 6
+#kat's color palette
+#cbPalette <- c("#E69F00", "#56B4E9", "#000000", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+#using red to black
+h1 <- 2#rgb(202,0,32, maxColorValue = 255)
+h2 <- "darksalmon" #rgb(244,165,130, maxColorValue = 255)
+u1 <- 1#rgb(64,64,64, maxColorValue = 255)
+u2 <- "gray" #rgb(186,186,186, maxColorValue = 255)
+
+#set symbol size
+symsize <- 0.5
+```
+
+####Plot 1: Temperature Difference in heated minus control blocks
+```{r}
+#Plot 1: Temperature difference between heated and unheated blocks at all depths (equivalent plot, but fewer points skipped)
+pointEvery = 1000
+p1 <- function(){
+id1 <- "D1EF"
+id2 <- "89A1"
+id3 <- "FFFF"
+id4 <- "FFF4"
+id5 <- "97F4"
+id6 <- "11FC" #looks like 97F4
+
+
+#xlim 1438207200,1445500000
+  plot(long[long$id == id1,]$time[seq(1,length(long$time), pointEvery)], long[long$id == id1,]$TempDiff[seq(1,length(long$time), pointEvery)], ylab = expression("Temperature Difference (" ~ degree*C ~ ")"), xlab = "Time", col = b1, ylim = c(-5,10), cex=symsize)
+    points(long[long$id == id2,]$time[seq(1,length(long$time), pointEvery)], -long[long$id == id2,]$TempDiff[seq(1,length(long$time), pointEvery)], col = b2, cex=symsize) 
+    points(long[long$id == id3,]$time[seq(1,length(long$time), pointEvery)], long[long$id == id3,]$TempDiff[seq(1,length(long$time), pointEvery)],  col = b3, cex=symsize) 
+    points(long[long$id == id4,]$time[seq(1,length(long$time), pointEvery)], long[long$id == id4,]$TempDiff[seq(1,length(long$time), pointEvery)],  col = b4, cex=symsize) 
+    points(long[long$id == id5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == id5,]$TempDiff[seq(1,length(long$time), pointEvery)],  col = b5, cex=symsize) 
+    points(long[long$id == id6,]$time[seq(1,length(long$time), pointEvery)], long[long$id == id6,]$TempDiff[seq(1,length(long$time), pointEvery)],  col = b5, cex=symsize) 
+        legend("topright",c(id1,id2,id3,id4,id5),
+         pch = c(1,1,1,1,1),
+         col=c(b1,b2,b3,b4,b5),cex=0.5
+        )
+}
+p1()
+
+pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/Tempdiff_no89A1.pdf",width = 7, height = 4)
+p1()
+dev.off()
+```
+
+####Plot 2: Average temperature in heated and unheated blocks  
+```{r}
+pointEvery = 100
+p2 <- function(){
+    par(mfrow = c(1,1)) 
+#Plot 2
+      plot(long[long$id == "D1EF" | long$id == "FFF4" | long$id == "97F4" | long$id == "FFFF",]$time[seq(2,length(long$time), pointEvery)], long[long$id == "D1EF" | long$id == "FFF4" | long$id == "97F4" | long$id == "FFFF",]$UAvg[seq(2,length(long$time), pointEvery)], ylab = expression("Temperature (" ~ degree*C ~ ")"), xlab = "Time", col = u1, ylim = c(-2,12),cex=symsize)
+  points(long[long$id == "D1EF" | long$id == "FFF4" | long$id == "97F4" | long$id == "FFFF",]$time[seq(1,length(long$time), pointEvery)], long[long$id == "D1EF" | long$id == "FFF4" | long$id == "97F4" | long$id == "FFFF",]$HAvg[seq(1,length(long$time), pointEvery)], ylab = expression("Temperature (" ~ degree*C ~ ")"), xlab = "Time", col = h1,,cex=symsize)
+    legend("topright",c("Unheated","Heated"),
+         pch = c(1,1),
+         col=c(u1,h1),cex=0.5
+  )
+}
+p2()
+
+pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/UavgHavg.pdf",width = 7, height = 4)
+p2()
+dev.off()
+```
+
+####Plot 3: Temperature in heated and unheated block D1EF at depth = 5cm and depth = 25cm  
+One block (long$id) is plotted for ease of viewing, but heating effects vary widely among different ids.  
+You can type in different ids in place of D1EF in the code below and re-run this plot to see for yourself.
+```{r}
+p3 <- function(){
+    par(mfrow=c(1,1))
+    useThisId = "D1EF"
+    unsurf <- long[long$id == useThisId &  long$regStat == "R" & long$heatStat == "U" & long$depth == 5,] #these are all NA for some reason so I'm changing them to from M to R
+    hotsurf <- long[long$id == useThisId & long$regStat == "M" & long$heatStat == "H" & long$depth == 5,]
+    undeep <- long[long$id == useThisId & long$regStat == "R" & long$heatStat == "U" & long$depth == 25,]
+    hotdeep <- long[long$id == useThisId & long$regStat == "R" & long$heatStat == "H" & long$depth == 25,]
+    
+  plot(unsurf$time, unsurf$value, ylab = expression("Temperature (" ~ degree*C ~ ")"), xlab = "Time", col = u1, ylim = c(-5,20), cex=symsize)
+  points(hotsurf$time, hotsurf$value, col = h1, cex=symsize)
+  points(undeep$time, undeep$value, col = u2, cex=symsize)
+  points(hotdeep$time, hotdeep$value, col = h2, cex=symsize)
+    legend("topright",c("Unheated 5cm","Heated 5cm", "Unheated 25cm", "Heated 25cm"),
+         pch = c(1,1,1,1),
+         col=c(u1,h1,u2,h2),cex=0.5
+  )
+}
+p3()
+```
+
+###Export plots as PDF
+```{r}
+pointEvery = 100
+
+pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/Plot1_Tdiff_2016_weird.pdf",width = 7, height = 4)
+p1()
+dev.off()
+
+pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/Plot2_TempAvg_2016.pdf",width = 7, height = 4)
+p2()
+dev.off()
+
+ pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/Plot3_TempDepth_2016.pdf",width = 7, height = 4)
+ p3()
+ dev.off()
+```
+
+####Plot 4: Voltage per plot
+```{r}
+#Plot 4, Version 1
+par(mfrow=c(4,1))  
+pointEvery = 50
+      plot(long[long$id == "D1EF" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "D1EF" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], ylab = "Voltage", xlab = "Time", col = 1, ylim = c(11,14.5), main = "D1EF")
+      plot(long[long$id == "89A1" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "89A1" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], ylab = "Voltage", xlab = "Time", col = 2, ylim = c(11,14.5), main = "89A1")
+    plot(long[long$id == "97F4" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "97F4" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], ylab = "Voltage", xlab = "Time", col = 3, ylim = c(11,14.5), main = "97F4")
+        plot(long[long$id == "11FD" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "11FD" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], ylab = "Voltage", xlab = "Time", col = 4, ylim = c(11,14.5), main = "11FD")
+
+#Plot 4, Version 2
+par(mfrow=c(1,1))  
+pointEvery = 50
+      plot(long[long$id == "D1EF" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "D1EF" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], ylab = "Voltage", xlab = "Time", col = 1, ylim = c(11,14.5))
+      points(long[long$id == "89A1" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "89A1" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], col = 2)
+      points(long[long$id == "97F4" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "97F4" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], col = 3)
+      points(long[long$id == "11FD" & long$depth == 5,]$time[seq(1,length(long$time), pointEvery)], long[long$id == "11FD" & long$depth == 5,]$Voltage[seq(1,length(long$time), pointEvery)], col = 4)     
+```
+
+####Plot 5: Performance before and after solar panel installation
+```{r}
+par(mfrow = c(2,1))
+hist(long[long$Voltage < 14.5 & long$Voltage > 11 & long$time < "2015-08-13",]$Voltage, breaks = 20, xlim = c(11,14.5), main = "Before Installation", xlab = "Voltage")
+hist(long[long$Voltage < 14.5 & long$Voltage > 11 & long$time > "2015-08-13",]$Voltage, breaks = 10, xlim = c(11,14.5), main = "After Installation", xlab = "Voltage")
+```
