@@ -32,31 +32,31 @@ Files were produced using the code: Microwarming_data_formatting_2015 or Microwa
 In flies used here, outliers have been flagged from the main dataset and omitted from the 15 min-averaged datasets.
 ```{r}
 #Data following QA/QC, with column flagging outliers
-flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2015_2.csv', stringsAsFactors=F) 
+flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2015.csv', stringsAsFactors=F) 
 
 #Depth-averaged temperatures in each plot for each 15-min interval, outliers omitted.  Includes depths of 15, 10, 15, 20, 35, and 50 cm.  Complete cases only.
-mean.15min.depthavg <- read.csv('data/2016_organized/flaggedBarrowFile.15min.avg_2016_4.csv', stringsAsFactors=F) 
+mean.15min.depthavg <- read.csv('data/2016_organized/flaggedBarrowFile.15min.avg_2016.csv', stringsAsFactors=F) 
 
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-mean.15min <- read.csv('data/2016_organized/flaggedBarrowFile.15min_2016_4.csv', stringsAsFactors=F) 
+mean.15min <- read.csv('data/2016_organized/flaggedBarrowFile.15min_2016.csv', stringsAsFactors=F) 
 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
-mean.15min.probe <- read.csv('data/2016_organized/flaggedBarrowFile.15min.probe_2016_4', stringsAsFactors=F) 
+mean.15min.probe <- read.csv('data/2016_organized/flaggedBarrowFile.15min.probe_2016', stringsAsFactors=F) 
 
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-mean.hour <- read.csv('data/2016_organized/flaggedBarrowFile.1hour_2016_4.csv', stringsAsFactors=F) 
+mean.hour <- read.csv('data/2016_organized/flaggedBarrowFile.1hour_2016.csv', stringsAsFactors=F) 
 
 #temperatures averaged for each probe, every hour, outliers omitted
-mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2016_4', stringsAsFactors=F) 
+mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2016', stringsAsFactors=F) 
 
 #temperatures averaged for each distance from the plot center, every hour, outliers omitted
-mean.hour.dist <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.dist_2016_4', stringsAsFactors=F) 
+mean.hour.dist <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.dist_2016', stringsAsFactors=F) 
 
 #temperatures averaged for each distance from the plot center, every hour, outliers omitted
-mean.hour.blockavg <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016_2.csv', stringsAsFactors=F) 
+mean.hour.blockavg <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016.csv', stringsAsFactors=F) 
 
 #heater effect for each block x depth, outliers omitted
-mean.hour.tdiff <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016_2.csv", stringsAsFactors = F) 
+mean.hour.tdiff <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016.csv", stringsAsFactors = F) 
 
 #heater status changes
 heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016.csv", stringsAsFactors = F)
