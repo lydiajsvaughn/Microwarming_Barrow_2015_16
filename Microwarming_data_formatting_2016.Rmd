@@ -379,9 +379,15 @@ rm(flagged.late, flagged.early, early.all, late.all) #to free up memory
 gc()
 ```
 
+format flagged data frame for the NGEE data repository
+```{r}
+ngee <- flagged %>% select(time, id, log, BoardTemp, TempDiff, Voltage, block, depth, dist, heatStat, heater, regStat, type, value, flag) %>% rename("temperature" = "value", "datetime" = "time", "board_type" = "type") %>% mutate("type" = "high-centered", "position" = "center") %>% mutate(heater = ifelse(heatStat == "U", NA, heater)) %>% mutate("plot_ID" = paste(block, heatStat, sep = "")) %>% mutate(easting = ifelse(block == 1, "584752", ifelse(block == 2, "584780", ifelse(block == 3, "584811", ifelse(block == 4, "584823", NA)))), northing = ifelse(block == 1, "7909723", ifelse(block == 2, "7909727", ifelse(block == 3, "7909725", ifelse(block == 4, "7909725", NA))))) %>% mutate(flag = ifelse(heater %in% c("OFF", "OFF*") & flag == "ramp-up", NA, flag)) %>% mutate("region" = "North Slope", "locale" = "Barrow", "administrative_area" = "BEO", "site" = "priming and warming plots") %>% arrange(block, heatStat, depth, dist, datetime) %>% select(region, locale, administrative_area, site, position, type, plot_ID, easting, northing, datetime, id, log, BoardTemp, TempDiff, Voltage, temperature, heatStat, heater, regStat, dist, depth, block, board_type, flag) 
+```
+
 Save flagged dataframe (the original dataset plus outlier flags)
 ```{r}
 write.csv(flagged, file = "data/2016_organized/flaggedBarrowFile_2016.csv") 
+write.csv(ngee, file = "data/formatted_NGEE_repository/microwarming_temperature_NGEE_2016.csv")
 ```
 
 ####Optional: read in flagged file and format time variable
