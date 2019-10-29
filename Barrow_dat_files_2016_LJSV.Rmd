@@ -276,13 +276,14 @@ I can use other conditional arguments such as "|" for "or" and "!=" for "not".
 
 ##Read data in 
 ```{r}
-long <- read.csv(file = "/Users/rzabramoff/Desktop/longBarrowFile_2016.csv")
+long <- read.csv(file = "data/2015_organized/longBarrowFile_2015.csv")
 
 #need to turn date and hour back into time
    long$fork <- paste(long$date, long$hour)
     #long$time <- as.POSIXct(strptime(as.factor(long$fork), "%Y-%m-%d %H"))
-   long$time <- as.POSIXct(strptime(long$fork, "%m/%d/%y %H"))
-    
+   #long$time <- as.POSIXct(strptime(long$fork, "%m/%d/%y %H"))
+    long$time <- as.POSIXct(long$time)
+
 long <- long[long$id == "D1EF" | long$id == "89A1" | long$id == "B7D1" |long$id == "7E4F" | long$id == "8F0A" | long$id =="11FD" | long$id =="FFF4" |  long$id =="FFFF" |  long$id =="380C" |  long$id =="97F4" |  long$id =="11FC" |  long$id =="7E00" |  long$id =="97F5" |  long$id =="97F0" |  long$id =="97F2"|  long$id =="97F6",]
 ```
 
@@ -339,7 +340,7 @@ id6 <- "11FC" #looks like 97F4
 }
 p1()
 
-pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/Tempdiff_no89A1.pdf",width = 7, height = 4)
+#pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/Tempdiff_no89A1.pdf",width = 7, height = 4)
 p1()
 dev.off()
 ```
@@ -359,7 +360,7 @@ p2 <- function(){
 }
 p2()
 
-pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/UavgHavg.pdf",width = 7, height = 4)
+#pdf("/Users/rzabramoff/Dropbox (Climate)/Barrow/processing_2016/UavgHavg.pdf",width = 7, height = 4)
 p2()
 dev.off()
 ```
