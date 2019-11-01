@@ -38,6 +38,9 @@ In files used here, outliers have been flagged from the main dataset and omitted
 #Depth-averaged temperatures in each plot for each 15-min interval, outliers omitted.  Includes depths of 5, 10, 20, 35, and 50 cm.  Complete cases only.
 mean.15min.depthavg <- read.csv('data/2016_organized/flaggedBarrowFile.15min.avg_2016.csv', stringsAsFactors=F) 
 
+#ranges.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.range_2016.csv', stringsAsFactors=F) 
+#ranges.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.1hour.range_2015.csv', stringsAsFactors=F) 
+
 #Depth-averaged temperatures in each plot for each 1-hour interval, outliers omitted.  Includes depths of 10, 20, and 35 cm.  Complete cases only.
 #mean.hour.depthavg.lim.2016 <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
 #mean.hour.depthavg.lim.2015 <- read.csv("data/2015_organized/flaggedBarrowFile.1hour.avg.lim_2015.csv") 
@@ -99,6 +102,10 @@ plot_labeller <- function(value){
   value[value=="25"] <- "25 cm"
   value[value=="35"] <- "35 cm"
   value[value=="50"] <- "50 cm"
+  value[value=="1"] <- "Block 1"
+  value[value=="2"] <- "Block 2"
+  value[value=="3"] <- "Block 3"
+  value[value=="4"] <- "Block 4"
   return(value)
 }
 ```
@@ -249,6 +256,58 @@ fig.4 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
 ggsave(file = "ramp-up_block3_15minavg_2015.png", path="plots/main_text", width = 8.5, height = 11, dpi = 300)
 ```
 
+
+####Figures for the supplement
+
+####heating effect for each block x depth at 8 cm
+####ribbon represents the range of values over the probe distances
+####1-hour averages
+```{r}
+#2015 
+#range of TempDiff (H-U) values over the 3 different probe distance from the plot center
+ranges.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.1hour.range_2015.csv', stringsAsFactors=F) 
+
+ranges.2015 <- ranges.2015 %>% mutate(time_hour = as.POSIXct(time_hour))
+
+#create NAs where data are missing so geom_ribbon leaves a gap
+ranges.2015 <- ranges.2015 %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-27 18:00:00"), depth = c(5, 10, 20), block = 4)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-24 12:00:00"), depth = 5, block = 4)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-25 18:00:00"), depth = 5, block = 4)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-14 12:00:00"), depth = c(5, 10, 20), block = 3)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-04 12:00:00"), depth = c(5, 10, 20), block = 2)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-08-29 12:00:00"), depth = 5, block = 4)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-09-01 12:00:00"), depth = 5, block = 4)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-09-02 15:00:00"), depth = 5, block = 4))  %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-09-02 17:00:00"), depth = 5, block = 4))  
+
+fig.s1.2015 <- ggplot(ranges.2015 %>% filter(time_hour > "2015-08-01", depth %in% c(5, 10, 20)), aes(y = TempDiff.8cm, x = time_hour)) +
+  geom_hline(yintercept = 4, color = "red") +
+  geom_ribbon(data = ranges.2015 %>% filter(time_hour > "2015-08-01", depth %in% c(5, 10, 20)), aes(ymin = min.Tdiff, ymax= max.Tdiff), alpha=0.4) +
+  geom_point(pch = 16, size = 0.75, alpha = 0.9) +
+  facet_grid(depth~block, labeller = plot_labeller) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+fig.s1.2015 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
+
+ggsave(file = "range.dist_2015.png", path = "plots/supplement", width = 10, height = 6, dpi = 300)
+
+#2016 
+ranges.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.range_2016.csv', stringsAsFactors=F) 
+
+ranges.2016 <- ranges.2016 %>% mutate(time_hour = as.POSIXct(time_hour))
+
+ranges.2016.toplot <- ranges.2016 %>% mutate(min.Tdiff = ifelse(is.na(TempDiff.8cm), NA, min.Tdiff), max.Tdiff = ifelse(is.na(TempDiff.8cm), NA, max.Tdiff))
+
+#create NAs where data are missing so geom_ribbon leaves a gap
+ranges.2016.toplot <- ranges.2016.toplot %>% bind_rows(data.frame(time_hour = as.POSIXct("2016-09-17 12:00:00"), depth = c(5, 10, 20), block = 1)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2016-08-07 12:00:00"), depth = c(5, 10, 20), block = 2)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2016-08-29 12:00:00"), depth = 5, block = 2)) %>% bind_rows(data.frame(time_hour = as.POSIXct("2016-08-22 12:00:00"), depth = 5, block = 1))
+
+fig.s1.2016 <- ggplot(ranges.2016.toplot %>% filter(time_hour > "2016-08-01", depth %in% c(5, 10, 20)), aes(y = TempDiff.8cm, x = time_hour)) +
+  geom_hline(yintercept = 4, color = "red", lwd = 0.5) +
+  geom_ribbon(data = ranges.2016.toplot %>% filter(time_hour > "2016-08-01", depth %in% c(5, 10, 20)), aes(ymin = min.Tdiff, ymax= max.Tdiff), alpha=0.4) +
+  geom_point(pch = 16, size = 0.75, alpha = 0.9) +
+  facet_grid(depth~block, labeller = plot_labeller) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+fig.s1.2016 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
+
+ggsave(file = "range.dist_2016.png", path = "plots/supplement", width = 10, height = 6, dpi = 300)
+```
 
 ####Extra figures
 ####Depth-averaged temperature difference in heated minus control blocks
