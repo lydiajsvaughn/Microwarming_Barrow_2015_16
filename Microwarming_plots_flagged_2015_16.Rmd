@@ -32,23 +32,26 @@ Knitr will provide a row of buttons across the top of the top left window in RSt
 Files were produced using the code Microwarming_data_formatting_2016.Rmd
 In files used here, outliers have been flagged from the main dataset and omitted from the 15 min-averaged datasets.
 ```{r}
-#Data following QA/QC, with column flagging outliers
-flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016.csv', stringsAsFactors=F) 
+#Data following QA/QC, with column flagging outliers.  Uncomment if needed
+#flagged <- read.csv('data/2016_organized/flaggedBarrowFile_2016.csv', stringsAsFactors=F) 
 
 #Depth-averaged temperatures in each plot for each 15-min interval, outliers omitted.  Includes depths of 5, 10, 20, 35, and 50 cm.  Complete cases only.
 mean.15min.depthavg <- read.csv('data/2016_organized/flaggedBarrowFile.15min.avg_2016.csv', stringsAsFactors=F) 
 
 #Depth-averaged temperatures in each plot for each 1-hour interval, outliers omitted.  Includes depths of 10, 20, and 35 cm.  Complete cases only.
-mean.hour.depthavg.lim <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
+#mean.hour.depthavg.lim.2016 <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
+#mean.hour.depthavg.lim.2015 <- read.csv("data/2015_organized/flaggedBarrowFile.1hour.avg.lim_2015.csv") 
 
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-mean.15min <- read.csv('data/2016_organized/flaggedBarrowFile.15min_2016.csv', stringsAsFactors=F) 
+#mean.15min.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.15min_2016.csv', stringsAsFactors=F) 
+#mean.15min.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.15min_2015.csv', stringsAsFactors=F) 
 
 #temperatures averaged for each probe, every 15-min interval, outliers omitted
 mean.15min.probe <- read.csv('data/2016_organized/flaggedBarrowFile.15min.probe_2016', stringsAsFactors=F) 
 
 #temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
-mean.hour <- read.csv('data/2016_organized/flaggedBarrowFile.1hour_2016.csv', stringsAsFactors=F) 
+mean.hour.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.1hour_2015.csv', stringsAsFactors=F) 
+mean.hour.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.1hour_2016.csv', stringsAsFactors=F) 
 
 #temperatures averaged for each probe, every hour, outliers omitted
 mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2016', stringsAsFactors=F) 
@@ -57,7 +60,8 @@ mean.hour.probe <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.probe_2
 mean.hour.dist <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.dist_2016', stringsAsFactors=F) 
 
 #temperatures averaged for each distance from the plot center, every hour, outliers omitted
-mean.hour.blockavg <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016.csv', stringsAsFactors=F) 
+#mean.hour.blockavg.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016.csv', stringsAsFactors=F) 
+#mean.hour.blockavg.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.1hour.blocks_2015.csv', stringsAsFactors=F) 
 
 #heater effect for each block x depth, outliers omitted
 mean.hour.tdiff <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2016.csv", stringsAsFactors = F) 
@@ -65,7 +69,6 @@ mean.hour.tdiff <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.Tdiff_2
 #heater status changes
 heat.switch <- read.csv("data/2016_organized/heaterSwitch_2016.csv", stringsAsFactors = F)
 
-mean.hour.depthavg.lim <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
 ```
 
 ####Packages
@@ -84,7 +87,7 @@ plottheme <- theme_bw() +
   theme(legend.title = element_text(size=14)) +
   theme(legend.text = element_text(size=12)) 
 
-striptheme <- theme(strip.background = element_rect(colour="black", fill="white")) +
+striptheme <- theme(strip.background = element_rect(colour="white", fill="white")) +
   theme(panel.spacing = unit(0.5,"lines")) +
   theme(strip.text = element_text(size=14))
 
@@ -112,15 +115,19 @@ plot_labeller <- function(value){
 9. "#038C7F", "#64BF4B", "#F2CC0F", "#F27127" depths?
 10. "#1B1959", "#174873", "#0396A6", "#94BF54" depths?
 11. "#F2BF27", "#F28705", "#D94625", "#A6382E"
+Viridis limited: "#404788FF", "#238A8DFF", "55C667FF", "#FDE725FF"
 
 ####Plots to use in main text of paper: 
 ###detail of the depth effect for a single plot, block 2 from June 10-July 10, 2016 15-min averages: flagged_15min_p2detail.png
 ```{r}
-mean.15min <- mean.15min %>% mutate(time_15min = as.POSIXct(time_15min))
+#temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
+mean.15min.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.15min_2016.csv', stringsAsFactors=F) 
 
-fig.2 <- ggplot(mean.15min %>% filter(block == 2 & time_15min >= "2016-06-10" & time_15min <= "2016-07-10" & depth %in% c(5, 10, 20, 50)), aes(y = temp, x = time_15min, color = heatStat)) +
+mean.15min.2016 <- mean.15min.2016 %>% mutate(time_15min = as.POSIXct(time_15min))
+
+fig.1 <- ggplot(mean.15min.2016 %>% filter(block == 2 & time_15min >= "2016-06-10" & time_15min <= "2016-07-10" & depth %in% c(5, 10, 20, 50)), aes(y = temp, x = time_15min, color = heatStat)) +
   geom_hline(yintercept = 0, color = "black", lwd = 0.25) +
-  geom_point(pch = 16, size = 1, alpha = 0.8) +
+  geom_point(pch = 16, size = 1, alpha = 0.6) +
   facet_grid(depth~., labeller = plot_labeller) +
   ylab(expression("Temperature" ~ (degree * C))) +
   xlab("Time") +
@@ -128,54 +135,108 @@ fig.2 <- ggplot(mean.15min %>% filter(block == 2 & time_15min >= "2016-06-10" & 
   scale_color_brewer(palette = "Set1", name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
   #ggtitle("Block 2, 2016")
   
-fig.2 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
+fig.1 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
 
-ggsave(file = "depths_block2_15minavg_2016.png", path="plots/main_text", width = 11, height = 11, dpi = 300)
+ggsave(file = "depths_block2_15minavg_2016.png", path="plots/main_text", width = 8.5, height = 8.5, dpi = 300)
 ```
 
 ####average heating effect for depths of 10, 20, and 35, and 50 cm when heaters were on:
+####points are averages, ribbon is standard error.  Note that breaks in the ribbon indicate that n = 1 (data are aailable from only one block). 
 ```{r}
-mean.hour.blockavg <- mean.hour.blockavg %>% mutate(time_hour = as.POSIXct(time_hour))
+#2015
+#temperatures averaged for each distance from the plot center, every hour, outliers omitted
+mean.hour.blockavg.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.1hour.blocks_2015.csv', stringsAsFactors=F) 
 
-fig.3.2016 <- ggplot(mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
-  geom_ribbon(data = mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.3) +
+mean.hour.blockavg.2015 <- mean.hour.blockavg.2015 %>% mutate(time_hour = as.POSIXct(time_hour))
+
+#create NAs in September so geom_ribbon leaves a gap
+mean.hour.blockavg.2015 <- mean.hour.blockavg.2015 %>% bind_rows(data.frame(time_hour = as.POSIXct("2015-09-20 12:00:00"), depth = c(10, 20, 35, 50)))
+
+fig.2.2015 <- ggplot(mean.hour.blockavg.2015 %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
+  geom_ribbon(data = mean.hour.blockavg.2015 %>% filter(depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.3) +
   geom_point(pch = 16, size = 1, alpha = 0.8, aes(color = as.factor(depth))) +
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
   ylab(expression("Heated minus control"~(degree*C))) +
   xlab("Date") +
-  scale_color_manual(name = "Depth (cm)", values = c("#F2BF27", "#F28705", "#D94625", "#A6382E")) +
-  scale_fill_manual(name = "Depth (cm)", values = c("#F2BF27", "#F28705", "#D94625", "#A6382E"))   
+  scale_color_manual(name = "Depth (cm)", values = c("#FDE725FF", "#55C667FF", "#2D708EFF", "#404788FF")) +
+  scale_fill_manual(name = "Depth (cm)", values = c("#FDE725FF", "#55C667FF", "#2D708EFF", "#404788FF"))   
 #annotate("rect", fill = as.factor(depth), alpha = 0.5, xmin = time_hour, xmax = time_hour + 1, ymin = mean.TempDiff - se, ymax = mean.TempDiff + se)  
 
-fig.3.2016 + plottheme
+fig.2.2015 + plottheme
 
-#ggsave(file = "TempDiff_depths_1havg_2016.png", path="plots/main_text", width = 11, height = 6, dpi = 300)
+ggsave(file = "TempDiff_depths_1havg_2015.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
+
+
+#2016
+#temperatures averaged for each distance from the plot center, every hour, outliers omitted
+mean.hour.blockavg.2016 <- read.csv('data/2016_organized/flaggedBarrowFile.1hour.blocks_2016.csv', stringsAsFactors=F) 
+
+mean.hour.blockavg.2016 <- mean.hour.blockavg.2016 %>% mutate(time_hour = as.POSIXct(time_hour))
+
+fig.2.2016 <- ggplot(mean.hour.blockavg.2016 %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
+  geom_ribbon(data = mean.hour.blockavg.2016 %>% filter(depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.3) +
+  geom_point(pch = 16, size = 1, alpha = 0.6, aes(color = as.factor(depth))) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Date") +
+  scale_color_manual(name = "Depth (cm)", values = c("#FDE725FF", "#55C667FF", "#2D708EFF", "#404788FF")) +
+  scale_fill_manual(name = "Depth (cm)", values = c("#FDE725FF", "#55C667FF", "#2D708EFF", "#404788FF"))   
+
+#annotate("rect", fill = as.factor(depth), alpha = 0.5, xmin = time_hour, xmax = time_hour + 1, ymin = mean.TempDiff - se, ymax = mean.TempDiff + se)  
+
+fig.2.2016 + plottheme
+
+ggsave(file = "TempDiff_depths_1havg_2016.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
 ```
 
-####depth-averaged heating effect, avg across blocks when heaters are on, overlayed on individual block traces.  depth averages include 10, 20, and 35 cm depths. 
+####depth-averaged heating effect, avg across blocks, overlayed on individual block traces. 
+####individual blocks are averaged over 10, 20, and 35 cm depths. 
+####mean (across blocks) is calculated only when heaters are on and fully functioning, e.g., not during ramp-up period, and only when data are available for 2 or more blocks
 ```{r}
-mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% mutate(data.type = ifelse(block == "all", "mean", "trace"))
+#2015
+#Depth-averaged temperatures in each plot for each 1-hour interval, outliers omitted.  Includes depths of 10, 20, and 35 cm.  Complete cases only.
+mean.hour.depthavg.lim.2015 <- read.csv("data/2015_organized/flaggedBarrowFile.1hour.avg.lim_2015.csv") 
 
-fig.4.2016 <- ggplot(mean.hour.depthavg.lim %>% filter(block != "unknown", is.na(flag), is.na(n) | n > 1), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
-  geom_point(pch=16, alpha = 0.8, size = 2) +
+mean.hour.depthavg.lim.2015 <- mean.hour.depthavg.lim.2015 %>% mutate(data.type = ifelse(block == "all", "mean", "trace"), time_hour = as.POSIXct(time_hour))
+
+fig.3.2015 <- ggplot(mean.hour.depthavg.lim.2015 %>% filter(block != "unknown", is.na(flag), is.na(n) | n > 1), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
+  geom_point(pch=16, alpha = 0.6, size = 2) +
   ylab(expression("Heated minus control"~(degree*C))) +
   xlab("Time") +
-  scale_color_manual(name="block", values = c("slategray1", "lavender", "darkseagreen1", "lemonchiffon1", "black")) +
+  scale_color_manual(name="Block", values = c("#F16A24", "#F2CF1D", "#04BF8A", "#0077BD", "black"), labels = c("1", "2", "3", "4", "mean")) +
   scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
 
-fig.4.2016 + plottheme + theme(legend.position = c(.05, .2)) 
+fig.3.2015 + plottheme # + theme(legend.position = c(.05, .2)) 
 
-#ggsave("TempDiff_blocks_lim_1h_2016.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
+ggsave("TempDiff_blocks_lim_1h_2015.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
+
+#2016
+#Depth-averaged temperatures in each plot for each 1-hour interval, outliers omitted.  Includes depths of 10, 20, and 35 cm.  Complete cases only.
+mean.hour.depthavg.lim.2016 <- read.csv("data/2016_organized/flaggedBarrowFile.1hour.avg.lim_2016.csv") 
+
+mean.hour.depthavg.lim.2016 <- mean.hour.depthavg.lim.2016 %>% mutate(data.type = ifelse(block == "all", "mean", "trace"), time_hour = as.POSIXct(time_hour))
+
+fig.3.2016 <- ggplot(mean.hour.depthavg.lim.2016 %>% filter(block != "unknown", is.na(flag), is.na(n) | n > 1), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
+  geom_point(pch=16, alpha = 0.6, size = 2) +
+  ylab(expression("Heated minus control"~(degree*C))) +
+  xlab("Time") +
+  scale_color_manual(name="Block", values = c("#F16A24", "#F2CF1D", "#04BF8A", "#0077BD", "black"), labels = c("1", "2", "3", "4", "mean")) +
+  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
+
+fig.3.2016 + plottheme # + theme(legend.position = c(.05, .2)) 
+
+ggsave("TempDiff_blocks_lim_1h_2016.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
 ```
 
-#2015
-####Plots to use in main text of paper: 
-###detail of ramp-up period from October 2015, block 3, 1-hour averages
+###detail of ramp-up period from October 2015, block 3, 15-min averages
 ```{r}
-mean.hour.2015 <- mean.hour.2015 %>% mutate(time_15min = as.POSIXct(time_15min))
+#temperatures averaged for each plot and depth for every 15-min interval, outliers omitted
+mean.15min.2015 <- read.csv('data/2015_organized/flaggedBarrowFile.15min_2015.csv', stringsAsFactors=F) 
 
-fig.1 <- ggplot(mean.hour.2015 %>% filter(block == 3, time_hour > "2015-10-01"), aes(y = temp, x = time_hour, color = heatStat)) +
-  geom_point(pch = 1, size = 0.5) +
+mean.15min.2015 <- mean.15min.2015 %>% mutate(time_15min = as.POSIXct(time_15min))
+
+fig.4 <- ggplot(mean.15min.2015 %>% filter(block == 3, time_15min > "2015-10-01"), aes(y = temp, x = time_15min, color = heatStat)) +
+  geom_point(pch = 16, size = 1, alpha = 0.6) +
   facet_grid(depth~., labeller = plot_labeller) +
   ylab(expression("Temperature" ~ (degree * C))) +
   #ggtitle(paste("Block 3")) +
@@ -183,46 +244,11 @@ fig.1 <- ggplot(mean.hour.2015 %>% filter(block == 3, time_hour > "2015-10-01"),
   scale_x_datetime(date_labels = "%b %d", date_breaks="1 days") +
   scale_color_brewer(palette = "Set1", name = "Heater status", breaks = c("H", "U"), labels = c("Heated", "Unheated")) 
   
-print(fig.1 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
-)
+fig.4 + plottheme + striptheme + theme(strip.text.y = element_text(angle = 0))
 
-#ggsave(file = "ramp-up_block3_1havg_2015.png", path="plots/main_text", width = 8.5, height = 11, dpi = 300)
+ggsave(file = "ramp-up_block3_15minavg_2015.png", path="plots/main_text", width = 8.5, height = 11, dpi = 300)
 ```
 
-####average heating effect for depths of 10, 20, 35, and 50 cm when heaters were on:
-```{r}
-mean.hour.blockavg.2015 <- mean.hour.blockavg.2015 %>% mutate(time_hour = as.POSIXct(time_hour))
-
-fig.3.2015 <- ggplot(mean.hour.blockavg.2015 %>% filter(depth %in% c(10, 20, 35, 50)), aes(x = time_hour, y = mean.TempDiff, fill = as.factor(depth))) +
-  geom_ribbon(data = mean.hour.blockavg %>% filter(depth %in% c(10, 20, 35, 50)), aes(ymin = mean.TempDiff - se, ymax= mean.TempDiff + se), alpha=0.3) +
-  geom_point(pch = 16, size = 1, alpha = 0.8, aes(color = as.factor(depth))) +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") +
-  ylab(expression("Heated minus control"~(degree*C))) +
-  xlab("Date") +
-  scale_color_manual(name = "Depth (cm)", values = c("#F2BF27", "#F28705", "#D94625", "#A6382E")) +
-  scale_fill_manual(name = "Depth (cm)", values = c("#F2BF27", "#F28705", "#D94625", "#A6382E"))   
-#annotate("rect", fill = as.factor(depth), alpha = 0.5, xmin = time_hour, xmax = time_hour + 1, ymin = mean.TempDiff - se, ymax = mean.TempDiff + se)  
-
-fig.3.2015 + plottheme
-
-#ggsave(file = "TempDiff_depths_1havg_2015.png", path="plots/main_text", width = 11, height = 6, dpi = 300)
-```
-
-depth-averaged heating effect: flagged_TempDiff_mean_color_lim_1h_2015 
-```{r}
-mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% mutate(data.type = ifelse(block == "all", "mean", "trace"))
-
-fig.4.2015 <- ggplot(mean.hour.depthavg.lim %>% filter(block != "unknown", is.na(flag), is.na(n) | n > 1), aes(y=TempDiff, x=time_hour, color=as.factor(as.character(block)))) +
-  geom_point(pch=16, alpha = 0.8, size = 2) +
-  ylab(expression("Heated minus control"~(degree*C))) +
-  xlab("Time") +
-  scale_color_manual(name="block", values = c("slategray1", "lavender", "darkseagreen1", "lemonchiffon1", "black")) +
-  scale_x_datetime(date_labels = "%b %d", date_breaks="3 days") 
-
-fig.4.2015 + plottheme + theme(legend.position = c(.05, .2)) 
-
-#ggsave("TempDiff_blocks_lim_1h_2015.png", path="plots/main_text", width = 14, height = 7, dpi = 300)
-```
 
 ####Extra figures
 ####Depth-averaged temperature difference in heated minus control blocks
