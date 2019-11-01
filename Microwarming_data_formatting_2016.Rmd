@@ -458,6 +458,7 @@ mean.hour.dist <- flagged %>% filter(is.na(flag) | flag == "ramp-up") %>% group_
 
 ```
 
+
 ####Average every 4 hours
 ```{r}
 #flagged$time_4hour <- floor_datetime(flagged$time, 240 * 60)
@@ -553,7 +554,7 @@ mean.hour.depthavg.lim <- mean.hour %>% filter(depth != 25, depth != 15, depth !
 
 mean.hour.depthavg.lim$block <- as.character(mean.hour.depthavg.lim$block)
 
-mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% full_join(mean.hour.depthavg.lim %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour, block) %>% summarize(n = length(time_hour)) %>% full_join(mean.hour.depthavg.lim %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
+mean.hour.depthavg.lim <- mean.hour.depthavg.lim %>% full_join(mean.hour.depthavg.lim %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(n = length(time_hour)) %>% full_join(mean.hour.depthavg.lim %>% filter(heater %in% c("ON", "ON*"), is.na(flag)) %>% group_by(time_hour) %>% summarize(TempDiff = mean(TempDiff))) %>% mutate(heater = "ON", block = "all"))
 
 #4-hour average
 mean.4hour <-mean.4hour %>% full_join(mean.4hour %>% filter(depth != 25, depth != 15) %>% group_by(time_4hour, block, heatStat, flag) %>% summarize(depths = length(depth))) 
